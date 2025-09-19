@@ -1,0 +1,89 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id                Int      @id @default(autoincrement())
+  email             String   @unique
+  passwordHash      String   @map("password_hash")
+  googleAccessToken String?  @map("google_access_token")
+  googleRefreshToken String? @map("google_refresh_token")
+  createdAt         DateTime @default(now()) @map("created_at")
+
+  // Relaciones
+  studyTopics       StudyTopic[]
+  scheduledReviews  ScheduledReview[]
+  completedReviews  CompletedReview[]
+
+  @@map("users")
+}
+
+model StudyTopic {
+  id          Int      @id @default(autoincrement())
+  userId      Int      @map("user_id")
+  name        String
+  description String?
+  color       String   @default("#3B82F6")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  // Relaciones
+  user        User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  studyCards  StudyCard[]
+
+  @@map("study_topics")
+}
+
+model StudyCard {
+  id        Int      @id @default(autoincrement())
+  topicId   Int      @map("topic_id")
+  question  String
+  answer    String
+  createdAt DateTime @default(now()) @map("created_at")
+
+  // Relaciones
+  topic            StudyTopic @relation(fields: [topicId], references: [id], onDelete: Cascade)
+  scheduledReviews ScheduledReview[]
+  completedReviews CompletedReview[]
+
+  @@map("study_cards")
+}
+
+model ScheduledReview {
+  id            Int       @id @default(autoincrement())
+  cardId        Int       @map("card_id")
+  userId        Int       @map("user_id")
+  dueDate       DateTime  @map("due_date")
+  intervalDays  Int       @map("interval_days")
+  googleEventId String?   @map("google_event_id")
+  createdAt     DateTime  @default(now()) @map("created_at")
+
+  // Relaciones
+  card             StudyCard @relation(fields: [cardId], references: [id], onDelete: Cascade)
+  user             User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  completedReviews CompletedReview[]
+
+  @@map("scheduled_reviews")
+}
+
+model CompletedReview {
+  id                  Int      @id @default(autoincrement())
+  scheduledReviewId   Int      @unique @map("scheduled_review_id")
+  cardId              Int      @map("card_id")
+  userId              Int      @map("user_id")
+  completedAt         DateTime @map("completed_at")
+  difficultyRating    Int      @map("difficulty_rating")
+  responseTimeSeconds Int?     @map("response_time_seconds")
+  createdAt           DateTime @default(now()) @map("created_at")
+
+  // Relaciones
+  scheduledReview ScheduledReview @relation(fields: [scheduledReviewId], references: [id], onDelete: Cascade)
+  card           StudyCard       @relation(fields: [cardId], references: [id], onDelete: Cascade)
+  user           User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("completed_reviews")
+}
