@@ -29,7 +29,7 @@ app.use(express.static(path.join(import.meta.dirname, "public")));
  * API routes
  */
 
-app.app.get("/api/cards", jwtAuth.guard, cardController.list);
+app.get("/api/cards", jwtAuth.guard, cardController.list);
 app.get("/api/cards/:cardId", jwtAuth.guard, cardController.getOne);
 app.post(
   "/api/card",
@@ -38,7 +38,7 @@ app.post(
   cardController.newProduct
 );
 app.put(
-  "/api/car/:cardId",
+  "/api/card/:cardId",
   upload.single("image"),
   jwtAuth.guard,
   cardController.upDate
