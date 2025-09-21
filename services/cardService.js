@@ -1,4 +1,4 @@
-import prisma from "../lib/prisma";
+import prisma from "../lib/prisma.js";
 
 export async function createCard(topicId, cardData, userId) {
   const { question, answer } = cardData;

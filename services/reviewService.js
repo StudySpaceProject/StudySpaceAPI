@@ -1,4 +1,4 @@
-import prisma from "../lib/prisma";
+import prisma from "../lib/prisma.js";
 
 export async function getPendingReviews(userId) {
   const now = new Date();
@@ -38,8 +38,8 @@ export async function getPendingReviews(userId) {
   }));
 }
 
-export async function completeReview(scheduledReview, reviewData, userId) {
-  const { difficultyRating, responseTime = null } = reviewData;
+export async function completeReview(scheduledReviewId, reviewData, userId) {
+  const { difficultyRating, responseTimeSeconds = null } = reviewData;
 
   try {
     const result = await prisma.$transaction(async (tx) => {
@@ -47,7 +47,7 @@ export async function completeReview(scheduledReview, reviewData, userId) {
         where: {
           id: scheduledReviewId,
           userId,
-          completedReviews: { none: {} }, // No completada aún
+          completedReviews: { none: {} },
         },
         include: {
           card: {
@@ -89,7 +89,7 @@ export async function completeReview(scheduledReview, reviewData, userId) {
         data: {
           cardId: scheduledReview.cardId,
           userId,
-          dueDate: nextDueDate,
+          dueDate: nextStudyDate,
           intervalDays: nextInterval,
         },
       });

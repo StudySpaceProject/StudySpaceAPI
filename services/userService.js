@@ -1,4 +1,4 @@
-import prisma from "../lib/prisma";
+import prisma from "../lib/prisma.js";
 import bcrypt from "bcrypt";
 
 export async function createUser(email, password) {
@@ -124,7 +124,7 @@ export async function getUserDashboard(userId) {
   }
 
   const totalCards = user.studyTopics.reduce(
-    (acc, topic) => acc + topic.studyCards,
+    (acc, topic) => acc + topic.studyCards.length,
     0
   );
   const pendingReviews = user.scheduledReviews.map((review) => ({

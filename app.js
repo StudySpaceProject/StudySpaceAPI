@@ -1,6 +1,11 @@
 import express from "express";
-import * as cardController from "./controllers/api/cardsController";
-import * as usersController from "./controllers/api/usersController";
+import cors from "cors";
+import path from "path";
+import morgan from "morgan";
+import * as usersController from "./controllers/usersController.js";
+import * as topicsController from "./controllers/topicsController.js";
+import * as cardsController from "./controllers/cardsController.js";
+import * as reviewsController from "./controllers/reviewsController.js";
 
 const app = express();
 //cors configuration
@@ -18,64 +23,68 @@ app.use(
 );
 
 /**
- * General rutes
+ * GENERAL ROUTES
  */
 
-app.use(logger("dev"));
+app.use(morgan("dev"));
+app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 app.use(express.static(path.join(import.meta.dirname, "public")));
 
 /**
- * API routes
+ * API ROUTES
  */
+// USERS ROUTES
+app.post("/api/users/register", usersController.register);
+app.post("/api/users/login", usersController.login);
+app.get("/api/users/:id", usersController.getUserById);
+app.get("/api/users/:id/dashboard", usersController.getDashboard);
 
-app.get("/api/cards", jwtAuth.guard, cardController.list);
-app.get("/api/cards/:cardId", jwtAuth.guard, cardController.getOne);
-app.post(
-  "/api/card",
-  jwtAuth.guard,
-  upload.single("image"),
-  cardController.newProduct
+// TOPICS ROUTES
+app.post("/api/topics", topicsController.createTopic);
+app.get("/api/topics/user/:userId", topicsController.getUserTopics);
+app.get("/api/topics/:id", topicsController.getTopicById);
+app.put("/api/topics/:id", topicsController.updateTopic);
+app.delete("/api/topics/:id", topicsController.deleteTopic);
+app.get("/api/topics/search/:userId", topicsController.searchTopics);
+
+// CARDS ROUTES
+app.post("/api/cards", cardsController.createCard);
+app.get("/api/cards/topic/:topicId", cardsController.getTopicCards);
+app.get("/api/cards/:id", cardsController.getCardById);
+app.put("/api/cards/:id", cardsController.updateCard);
+app.delete("/api/cards/:id", cardsController.deleteCard);
+app.get("/api/cards/search/:userId", cardsController.searchCards);
+
+// REVIEWS ROUTES
+app.get("/api/reviews/pending/:userId", reviewsController.getPendingReviews);
+app.post("/api/reviews/complete", reviewsController.completeReview);
+app.get("/api/reviews/upcoming/:userId", reviewsController.getUpcomingReviews);
+app.get(
+  "/api/reviews/card/:cardId/history",
+  reviewsController.getCardReviewHistory
 );
 app.put(
-  "/api/card/:cardId",
-  upload.single("image"),
-  jwtAuth.guard,
-  cardController.upDate
+  "/api/reviews/reschedule/:reviewId",
+  reviewsController.rescheduleReview
 );
-app.delete("/api/card/:cardId", jwtAuth.guard, cardController.deleteCard);
 
-//autenticacion con jwt
+//ROUTE NOT FOUND 404
+app.use((req, res) => {
+  res.status(404).json({
+    error: "Route not found",
+    path: req.originalUrl,
+  });
+});
 
-//peticion para crear usuario
-//el usuario se crea en postgresql con prisma
-
-//peticion para borrar usuario
-//se hace la peticion con prisma a postgresql
-
-//peticion para hacer login
-//se verifican los datos del usuario en la base de datos
-
-//Error handling
+//ERRROR HANDLING
 app.use((err, req, res, next) => {
-  if (err.array) {
-    err.message =
-      "invalid request : " +
-      err
-        .array()
-        .map((e) => `${e.location} ${e.type} ${e.path} ${e.msg}`)
-        .join(",");
+  const errorResponse = {
+    error: err.message || "Internal server error",
+    status: err.status || 500,
+  };
 
-    err.status = 422;
-  }
-
-  res.status(err.status || 500);
-  // res.send('Ocurrio un error: ' + err.message)
-
-  //set locals, including error informartion in development
-  res.locals.message = err.message;
-  res.locals.error = process.env.NODEAPP_ENV === "development" ? err : {};
-  res.render("error");
+  res.status(err.status || 500).json(errorResponse);
 });
 
 export default app;

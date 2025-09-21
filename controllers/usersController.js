@@ -1,37 +1,113 @@
-import Card from "../../models/Card";
+import * as userService from "./../services/userService.js";
 
-export async function addCard(req, res, next) {
+export async function register(req, res, next) {
   try {
-    const { name, description, image, tags, content } = req.body;
-    const userId = req.session.userId;
-    console.log("=== DEBUG INFO ===");
-    console.log("req.body:", req.body);
-    console.log("req.file:", req.file);
-    console.log("req.files:", req.files);
-    console.log("Content-Type:", req.get("Content-Type"));
-    console.log("==================");
-    const card = new Card({
-      name,
-      description,
-      image: req.file ? req.file.filename : image,
-      tags,
-      owner: userId,
-      content,
-    });
+    const { email, password } = req.body;
 
-    await card.save();
+    if (!email || !password) {
+      const error = new Error("Email and password are required");
+      error.status = 400;
+      return next(error);
+    }
+
+    if (password.length < 6) {
+      const error = new Error("Password must be at least 6 characters long");
+      error.status = 400;
+      return next(error);
+    }
+
+    const user = await userService.createUser(email, password);
+
+    res.status(201).json({
+      user,
+      message: "User created succesfully",
+    });
+  } catch (error) {
+    if (error.message === "Email already exists") {
+      error.status = 409;
+    }
+    next(error);
+  }
+}
+
+export async function login(req, res, next) {
+  try {
+    const { email, password } = req.body;
+
+    if (!email || !password) {
+      const error = new Error("Email and password are required");
+      error.status = 400;
+      return next(error);
+    }
+    const user = await userService.getUserByEmail(email);
+
+    if (!user) {
+      const error = new Error("Invalid credentials");
+      error.status = 401;
+      return next(error);
+    }
+
+    const isValidPassword = await userService.verifyPassword(
+      password,
+      user.passwordHash
+    );
+
+    if (!isValidPassword) {
+      const error = new Error("Invalid credentials");
+      error.status = 401;
+      return next(error);
+    }
+
+    res.json({
+      message: "Login successful",
+      user: {
+        id: user.id,
+        email: user.email,
+      },
+    });
   } catch (error) {
     next(error);
   }
 }
 
-export async function deleteCard(req, res, next) {
+export async function getUserById(req, res, next) {
   try {
-    const userId = req.session.userId;
-    const cardId = req.params.cardId;
-    await Card.deleteOne({ _id: cardId, owner: userId });
-    res.redirect("/");
+    const userId = parseInt(req.params.id);
+
+    if (isNaN(userId)) {
+      const error = new Error("Invalid user ID");
+      error.status = 400;
+      return next(error);
+    }
+
+    const user = await userService.getUserById(userId);
+
+    res.json({ user });
   } catch (error) {
+    if (error.message === "User not found") {
+      error.status = 404;
+    }
+    next(error);
+  }
+}
+
+export async function getDashboard(req, res, next) {
+  try {
+    const userId = parseInt(req.params.id);
+
+    if (isNaN(userId)) {
+      const error = new Error("Invalid user ID");
+      error.status = 400;
+      return next(error);
+    }
+
+    const dashboard = await userService.getUserDashboard(userId);
+
+    res.json({ dashboard });
+  } catch (error) {
+    if (error.message === "User not found") {
+      error.status = 404;
+    }
     next(error);
   }
 }

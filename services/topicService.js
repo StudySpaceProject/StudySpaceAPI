@@ -1,5 +1,4 @@
-import { selectFields } from "express-validator/lib/field-selection";
-import prisma from "../lib/prisma";
+import prisma from "../lib/prisma.js";
 
 export async function createTopic(userId, topicData) {
   const { name, description, color = "#3B82F6" } = topicData;
@@ -177,4 +176,8 @@ export async function deleteTopic(topicId, userId) {
   await prisma.studyTopic.delete({
     where: { id: topicId },
   });
+
+  return {
+    message: "Topic deleted successfully",
+  };
 }
