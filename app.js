@@ -12,9 +12,9 @@ const app = express();
 app.use(
   cors({
     origin: [
-      "http://localhost:5173", // Desarrollo
-      "http://localhost:3000", // Desarrollo alternativo
-      "https://dominio", // Producción
+      "http://localhost:5173", // Development
+      "http://localhost:3000", // Alt development
+      "https://dominio", // Production
     ],
     credentials: true,
     methods: ["GET", "POST", "PUT", "DELETE"],

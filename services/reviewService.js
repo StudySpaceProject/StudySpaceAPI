@@ -7,7 +7,7 @@ export async function getPendingReviews(userId) {
     where: {
       userId,
       dueDate: { lte: now },
-      completedReviews: { none: {} }, // No completadas
+      completedReviews: { none: {} },
     },
     include: {
       card: {

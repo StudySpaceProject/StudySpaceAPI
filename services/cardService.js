@@ -69,7 +69,7 @@ export async function getTopicCards(topicId, userId) {
       },
       scheduledReviews: {
         where: {
-          completedReviews: { none: {} }, // Solo reviews pendientes
+          completedReviews: { none: {} },
         },
         orderBy: { dueDate: "asc" },
         take: 1,
@@ -80,7 +80,7 @@ export async function getTopicCards(topicId, userId) {
           difficultyRating: true,
         },
         orderBy: { completedAt: "desc" },
-        take: 5, // Últimas 5 sesiones
+        take: 5,
       },
       _count: {
         select: {

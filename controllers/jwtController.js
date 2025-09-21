@@ -1,5 +1,5 @@
+//FILE EXAMPLE FROM NODEPOP APP
 import jwt from "jsonwebtoken";
-import User from "../../models/User";
 import createError from "http-errors";
 
 export async function loginJWT(req, res, next) {
