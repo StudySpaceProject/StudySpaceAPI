@@ -1,4 +1,6 @@
 import express from "express";
+import calendarRoutes from "./routes/calendar.js";
+import authRoutes from "./routes/auth.js"; 
 import cors from "cors";
 import path from "path";
 import morgan from "morgan";
@@ -34,6 +36,11 @@ app.use(express.static(path.join(import.meta.dirname, "public")));
 /**
  * API ROUTES
  */
+
+// CALENDAR ROUTES
+app.use("/calendar", calendarRoutes);
+app.use("/auth", authRoutes);
+
 // USERS ROUTES
 app.post("/api/users/register", usersController.register);
 app.post("/api/users/login", usersController.login);
