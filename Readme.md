@@ -1,28 +1,33 @@
 # StudySpace - Backend API
 
-Una plataforma inteligente de gestión de estudio que implementa metodologías de repaso espaciado, creación de notas inteligentes y seguimiento de progreso académico.
+Una plataforma inteligente de gestión de estudio que implementa metodologías de repaso espaciado, creación de notas inteligentes, seguimiento de progreso académico e **integración automática con Google Calendar**.
 
-## Características Principales
+## 🌟 Características Principales
 
 - **Sistema de Repaso Espaciado**: Algoritmo adaptativo que programa repasos automáticamente
 - **Gestión de Temas y Tarjetas**: Organización del contenido de estudio por materias
 - **Dashboard de Progreso**: Seguimiento del rendimiento académico
-- **API REST Completa**
+- **🗓️ Integración con Google Calendar**: Creación automática de eventos para sesiones de estudio
+- **🔐 Autenticación JWT**: Sistema de autenticación seguro con tokens
+- **API REST Completa**: Endpoints protegidos y documentados
 
-## Stack Tecnológico
+## 🛠️ Stack Tecnológico
 
 - **Backend**: Node.js + Express
 - **Base de Datos**: PostgreSQL con Prisma ORM
 - **Autenticación**: JWT + bcrypt
 - **Validación**: Express Validator
+- **Integración Externa**: Google Calendar API
+- **Middleware**: Autenticación JWT personalizada
 
-## Instalación
+## 📋 Instalación
 
 ### Prerrequisitos
 
 - Node.js (v18 o superior)
 - PostgreSQL (v12 o superior)
 - npm o yarn
+- Cuenta de Google Cloud Platform (para Calendar API)
 
 ### Configuración
 
@@ -39,24 +44,41 @@ npm install
 
 3. **Configurar variables de entorno**
 
-Crea el archivo `.env` con tus configuraciones, .env.example como guia:
+Crea el archivo `.env` basado en `.env.example`:
 ```env
+# Base de datos
 DATABASE_URL="postgresql://usuario:password@localhost:5432/studyspace"
+
+# Autenticación
 JWT_SECRET="tu-jwt-secret-muy-seguro"
+
+# Servidor
 PORT=3000
 NODE_ENV=development
+
+# Google Calendar Integration
+GOOGLE_CLIENT_ID="tu-google-client-id.googleusercontent.com"
+GOOGLE_CLIENT_SECRET="tu-google-client-secret"
+GOOGLE_REDIRECT_URI="http://localhost:3000/auth/google/callback"
 ```
 
-4. **Configurar la base de datos**
+4. **Configurar Google Calendar API**
+   - Ir a [Google Cloud Console](https://console.cloud.google.com/)
+   - Crear proyecto o seleccionar existente
+   - Habilitar Google Calendar API
+   - Crear credenciales OAuth 2.0
+   - Agregar URL de redirección: `http://localhost:3000/auth/google/callback`
+
+5. **Configurar la base de datos**
 ```bash
 # Generar cliente de Prisma
 npx prisma generate
 
 # Ejecutar migraciones
 npx prisma migrate deploy
+```
 
-
-## Ejecutar la aplicación
+## 🚀 Ejecutar la aplicación
 
 ### Desarrollo
 ```bash
@@ -70,57 +92,176 @@ npm start
 
 La API estará disponible en `http://localhost:3000`
 
-## Endpoints de la API
+## 📚 Endpoints de la API
 
-### Autenticación
+### 🔐 Autenticación de Usuarios
+
+#### Endpoints Públicos
 - `POST /api/users/register` - Registro de usuario
 - `POST /api/users/login` - Inicio de sesión
-- `GET /api/users/:id` - Obtener perfil de usuario
-- `GET /api/users/:id/dashboard` - Dashboard del usuario
 
-### Temas de Estudio
+#### Endpoints Protegidos (requieren JWT)
+- `GET /api/users/profile` - Obtener perfil del usuario autenticado
+- `GET /api/users/dashboard` - Dashboard del usuario autenticado
+
+### 📖 Gestión de Temas de Estudio
+
+**Todos los endpoints requieren autenticación JWT**
+
 - `POST /api/topics` - Crear tema
-- `GET /api/topics/user/:userId` - Obtener temas del usuario
-- `GET /api/topics/:id` - Obtener tema específico
-- `PUT /api/topics/:id` - Actualizar tema
-- `DELETE /api/topics/:id` - Eliminar tema
-- `GET /api/topics/search/:userId?search=term` - Buscar temas
+- `GET /api/topics` - Obtener temas del usuario autenticado
+- `GET /api/topics/:id` - Obtener tema específico (solo si es del usuario)
+- `PUT /api/topics/:id` - Actualizar tema (solo si es del usuario)
+- `DELETE /api/topics/:id` - Eliminar tema (solo si es del usuario)
+- `GET /api/topics/search?search=term` - Buscar temas del usuario
 
-### Tarjetas de Estudio
-- `POST /api/cards` - Crear tarjeta
-- `GET /api/cards/topic/:topicId` - Obtener tarjetas de un tema
-- `GET /api/cards/:id` - Obtener tarjeta específica
-- `PUT /api/cards/:id` - Actualizar tarjeta
-- `DELETE /api/cards/:id` - Eliminar tarjeta
-- `GET /api/cards/search/:userId?search=term` - Buscar tarjetas
+### 🗃️ Gestión de Tarjetas de Estudio
 
-### Sistema de Repasos
-- `GET /api/reviews/pending/:userId` - Repasos pendientes
-- `POST /api/reviews/complete` - Completar repaso
-- `GET /api/reviews/upcoming/:userId` - Próximos repasos
-- `GET /api/reviews/card/:cardId/history` - Historial de repasos
-- `PUT /api/reviews/reschedule/:reviewId` - Reprogramar repaso
+**Todos los endpoints requieren autenticación JWT**
 
+- `POST /api/cards` - Crear tarjeta (con evento automático de Calendar)
+- `GET /api/cards/topic/:topicId` - Obtener tarjetas de un tema (solo si es del usuario)
+- `GET /api/cards/:id` - Obtener tarjeta específica (solo si es del usuario)
+- `PUT /api/cards/:id` - Actualizar tarjeta (solo si es del usuario)
+- `DELETE /api/cards/:id` - Eliminar tarjeta (elimina eventos de Calendar automáticamente)
+- `GET /api/cards/search?search=term` - Buscar tarjetas del usuario
 
-## Algoritmo de Repaso Espaciado
+### 📅 Sistema de Repasos
+
+**Todos los endpoints requieren autenticación JWT**
+
+- `GET /api/reviews/pending` - Repasos pendientes del usuario
+- `POST /api/reviews/complete` - Completar repaso (actualiza eventos de Calendar automáticamente)
+- `GET /api/reviews/upcoming?days=7` - Próximos repasos del usuario
+- `GET /api/reviews/card/:cardId/history` - Historial de repasos de una tarjeta
+- `PUT /api/reviews/reschedule/:reviewId` - Reprogramar repaso (actualiza Calendar)
+
+### 🗓️ Integración con Google Calendar
+
+**Todos los endpoints requieren autenticación JWT**
+
+#### Autenticación con Google
+- `GET /auth/google/status` - Verificar estado de conexión con Google Calendar
+- `GET /auth/google/connect` - Iniciar proceso de autorización OAuth
+- `GET /auth/google/callback` - Callback automático de Google (no usar directamente)
+- `POST /auth/google/sync` - Sincronizar sesiones pendientes con Calendar
+- `DELETE /auth/google/disconnect` - Desconectar Google Calendar
+
+#### Gestión de Eventos
+- `POST /calendar/create-event` - Crear evento manual en Calendar
+
+### 🔐 Autenticación JWT
+
+Todos los endpoints protegidos requieren el header:
+```
+Authorization: Bearer <tu-jwt-token>
+```
+
+El token se obtiene en `/api/users/login` o `/api/users/register`.
+
+## 🗓️ Funcionalidades de Google Calendar
+
+### ✨ Características Automáticas
+
+1. **Creación Automática de Eventos**
+   - Al crear una tarjeta → Se programa sesión para mañana
+   - Evento incluye: tema, pregunta truncada, duración estimada
+   - Recordatorios automáticos: 15 y 5 minutos antes
+
+2. **Gestión Inteligente de Eventos**
+   - Al completar sesión → Elimina evento actual, crea próximo
+   - Al reprogramar → Actualiza fecha del evento
+   - Al eliminar tarjeta → Elimina todos los eventos asociados
+
+3. **Sincronización**
+   - Conectar Calendar → Sincroniza sesiones existentes automáticamente
+   - Comando manual de sincronización disponible
+   - Manejo de tokens expirados con renovación automática
+
+### 📋 Estructura de Eventos Creados
+
+```
+Estudio: Matemáticas
+Tema: Matemáticas
+Pregunta: ¿Cuál es la fórmula del teorema de Pitágoras?...
+Intervalo: 3 días
+Tiempo estimado: 30 minutos
+Tip: Revisa la pregunta y respuesta antes de la sesión.
+Creado por StudySpace
+```
+
+### 🔧 Configuración del Usuario
+
+```javascript
+// Verificar conexión
+const response = await fetch('/auth/google/status', {
+  headers: { 'Authorization': `Bearer ${token}` }
+});
+
+// Conectar Calendar
+if (!response.authorized) {
+  window.location.href = '/auth/google/connect';
+}
+
+// Sincronizar sesiones
+await fetch('/auth/google/sync', {
+  method: 'POST',
+  headers: { 'Authorization': `Bearer ${token}` }
+});
+```
+
+## 📊 Algoritmo de Repaso Espaciado
 
 El sistema implementa un algoritmo que ajusta los intervalos de repaso basado en la dificultad reportada:
 
-- **Primera revisión**: 1, 3, o 7 días (según dificultad)
-- **Revisiones subsecuentes**: Intervalos adaptativos
+### Primera Revisión
+- **Fácil (1)**: 7 días
+- **Medio (2)**: 3 días  
+- **Difícil (3)**: 1 día
+
+### Revisiones Subsecuentes
 - **Fácil (1)**: Duplica el intervalo (máx. 30 días)
 - **Medio (2)**: Multiplica por 1.3 (máx. 15 días)  
 - **Difícil (3)**: Reinicia a 1 día
 
-## Contribuir
+### Integración con Calendar
+- Los eventos se crean automáticamente según estos intervalos
+- Los recordatorios se configuran 15 y 5 minutos antes
+- Los eventos se actualizan cuando cambian las fechas
 
-1. Fork el proyecto
-2. Crea una rama para tu feature (`git checkout -b feature/nueva-funcionalidad`)
-3. Commit tus cambios (`git commit -m 'Agregar nueva funcionalidad'`)
-4. Push a la rama (`git push origin feature/nueva-funcionalidad`)
-5. Abre un Pull Request
+## 🛡️ Seguridad
 
-## Scripts Disponibles
+### Autenticación JWT
+- Tokens con expiración de 24 horas
+- Middleware de protección en todas las rutas sensibles
+- Validación de ownership (usuarios solo acceden a sus recursos)
+
+### Protección de Recursos
+- Validación en controladores y servicios
+- Queries con filtros de userId automáticos
+- Errors 404 para recursos no encontrados o sin permisos
+
+### Google Calendar
+- Tokens de acceso y refresh almacenados de forma segura
+- Renovación automática de tokens expirados
+- Revocación completa al desconectar
+
+## 🚧 Próximas Mejoras
+
+### Funcionalidades Planeadas
+- **Notificaciones Push**: Recordatorios nativos de la app
+- **Analytics Avanzados**: Métricas de productividad y progreso
+- **Compartir Contenido**: Compartir tarjetas entre usuarios
+- **Multimedia**: Soporte para imágenes y audio en tarjetas
+- **Sincronización Offline**: Cache local y sincronización
+
+### Integraciones Futuras  
+- **Google Drive**: Backup automático de tarjetas
+- **Notion**: Exportar/importar desde Notion
+- **Anki**: Compatibilidad con formato Anki
+- **Calendario Apple**: Soporte para usuarios de iOS
+
+## 📝 Scripts Disponibles
 
 - `npm run dev` - Ejecutar en modo desarrollo con nodemon
 - `npm start` - Ejecutar en modo producción
@@ -128,53 +269,31 @@ El sistema implementa un algoritmo que ajusta los intervalos de repaso basado en
 - `npx prisma migrate dev` - Crear nueva migración
 - `npx prisma studio` - Abrir interfaz visual de BD
 
-## Estado del Proyecto
+## 🤝 Contribuir
 
-**MVP Parcial** - Funcionalidades básicas implementadas para el lanzamiento inicial.
-### Funcionalidades por Agregar
-- Integración con google calendar
-- Manejo de sesiones
-- Autenticación con JWT
+1. Fork el proyecto
+2. Crea una rama para tu feature (`git checkout -b feature/nueva-funcionalidad`)
+3. Commit tus cambios (`git commit -m 'feat: agregar nueva funcionalidad'`)
+4. Push a la rama (`git push origin feature/nueva-funcionalidad`)
+5. Abre un Pull Request
 
-### Próximas Mejoras
-- Autenticación OAuth con Google
-- Subida de imágenes en tarjetas
-- Subida de Audio en tarjets
-- Compartir tarjetas
-- Notificaciones push
-- Analytics avanzados
+## 📄 Estado del Proyecto
 
+**MVP Completo** - Todas las funcionalidades básicas implementadas y sistema de Calendar integrado.
 
-# Integración con Google Calendar
+### ✅ Funcionalidades Completadas
+- ✅ Sistema de usuarios con JWT
+- ✅ Gestión completa de temas y tarjetas
+- ✅ Algoritmo de repaso espaciado
+- ✅ Integración completa con Google Calendar
+- ✅ Creación automática de eventos
+- ✅ Sincronización bidireccional
+- ✅ Manejo de tokens y renovación automática
+- ✅ Seguridad completa con ownership validation
 
-Este proyecto permite interactuar con Google Calendar. Para que otros compañeros puedan usarlo, sigan estos pasos:
+### 🔄 En Desarrollo
+- 🔄 Interfaz de usuario (frontend)
+- 🔄 Testing automatizado
+- 🔄 Documentación API con Swagger
+- 🔄 Deploy en producción
 
-## 1. Crear un usuario en la base de datos
-
-Antes de poder generar tokens de Google Calendar, cada usuario debe existir en la base de datos.
-
-- Crear un usuario con los campos requeridos (ej: nombre, email, etc.).
-Desde el proyecto hacer npx prisma studio y crear el usuario, la clave de estar Hasheda.
-
-- Guardar el ID del usuario generado, ya que lo necesitarán más adelante.
-
-## 2. Añadir el email como usuario de prueba
-
-Avisar a Richard para que los agregue como usuarios de prueba
-
-## 3. Generar el token de acceso
-
-Con el usuario creado y el email agregado como usuario de prueba:
-
-1.Desplegar el proyecto npm run dev
-
-2. Abrir un navegador y entrar a:  
-http://localhost:3000/auth/<ID_DEL_USUARIO>
-
-Sustituye `<ID_DEL_USUARIO>` por el ID del usuario creado en la base de datos.
-2. Se abrirá la pantalla de Google para autorizar el acceso a Calendar.
-3. Una vez autorizado, el token se guardará y el usuario estará listo para interactuar con Google Calendar desde la app.
-
-## 4. Uso en la aplicación
-
-- A partir de aquí, el usuario podrá crear, ver o editar eventos en su Google Calendar mediante las funciones de la app.
