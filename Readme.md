@@ -145,3 +145,36 @@ El sistema implementa un algoritmo que ajusta los intervalos de repaso basado en
 - Analytics avanzados
 
 
+# Integración con Google Calendar
+
+Este proyecto permite interactuar con Google Calendar. Para que otros compañeros puedan usarlo, sigan estos pasos:
+
+## 1. Crear un usuario en la base de datos
+
+Antes de poder generar tokens de Google Calendar, cada usuario debe existir en la base de datos.
+
+- Crear un usuario con los campos requeridos (ej: nombre, email, etc.).
+Desde el proyecto hacer npx prisma studio y crear el usuario, la clave de estar Hasheda.
+
+- Guardar el ID del usuario generado, ya que lo necesitarán más adelante.
+
+## 2. Añadir el email como usuario de prueba
+
+Avisar a Richard para que los agregue como usuarios de prueba
+
+## 3. Generar el token de acceso
+
+Con el usuario creado y el email agregado como usuario de prueba:
+
+1.Desplegar el proyecto npm run dev
+
+2. Abrir un navegador y entrar a:  
+http://localhost:3000/auth/<ID_DEL_USUARIO>
+
+Sustituye `<ID_DEL_USUARIO>` por el ID del usuario creado en la base de datos.
+2. Se abrirá la pantalla de Google para autorizar el acceso a Calendar.
+3. Una vez autorizado, el token se guardará y el usuario estará listo para interactuar con Google Calendar desde la app.
+
+## 4. Uso en la aplicación
+
+- A partir de aquí, el usuario podrá crear, ver o editar eventos en su Google Calendar mediante las funciones de la app.
