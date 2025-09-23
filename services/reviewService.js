@@ -189,6 +189,19 @@ export async function getUpcomingReviews(userId, days = 7) {
 }
 
 export async function getCardReviewHistory(cardId, userId) {
+  const card = await prisma.studyCard.findFirst({
+    where: {
+      id: cardId,
+      topic: {
+        userId: userId,
+      },
+    },
+  });
+
+  if (!card) {
+    throw new Error("Card not found or unauthorized access");
+  }
+
   const cardHistory = await prisma.completedReview.findMany({
     where: {
       cardId,
