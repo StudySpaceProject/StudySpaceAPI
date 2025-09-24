@@ -16,8 +16,7 @@ export async function getPendingReviews(req, res, next) {
 
 export async function completeReview(req, res, next) {
   try {
-    const { scheduledReviewId, difficultyRating, responseTimeSeconds } =
-      req.body;
+    const { scheduledReviewId, difficultyRating } = req.body;
     const userId = req.apiUserId;
 
     if (!scheduledReviewId || !difficultyRating) {
@@ -31,17 +30,6 @@ export async function completeReview(req, res, next) {
     if (![1, 2, 3].includes(difficultyRating)) {
       const error = new Error(
         "Difficulty rating must be 1 (easy), 2 (medium), or 3 (difficult)"
-      );
-      error.status = 400;
-      return next(error);
-    }
-
-    if (
-      responseTimeSeconds &&
-      (responseTimeSeconds < 0 || responseTimeSeconds > 3600)
-    ) {
-      const error = new Error(
-        "Response time must be between 0 and 3600 seconds"
       );
       error.status = 400;
       return next(error);

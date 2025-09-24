@@ -253,13 +253,7 @@ El sistema implementa un algoritmo que ajusta los intervalos de repaso basado en
 - **Analytics Avanzados**: Métricas de productividad y progreso
 - **Compartir Contenido**: Compartir tarjetas entre usuarios
 - **Multimedia**: Soporte para imágenes y audio en tarjetas
-- **Sincronización Offline**: Cache local y sincronización
 
-### Integraciones Futuras  
-- **Google Drive**: Backup automático de tarjetas
-- **Notion**: Exportar/importar desde Notion
-- **Anki**: Compatibilidad con formato Anki
-- **Calendario Apple**: Soporte para usuarios de iOS
 
 ## 📝 Scripts Disponibles
 

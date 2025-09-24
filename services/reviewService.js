@@ -39,7 +39,7 @@ export async function getPendingReviews(userId) {
 }
 
 export async function completeReview(scheduledReviewId, reviewData, userId) {
-  const { difficultyRating, responseTimeSeconds = null } = reviewData;
+  const { difficultyRating } = reviewData;
 
   try {
     const result = await prisma.$transaction(async (tx) => {
@@ -72,7 +72,6 @@ export async function completeReview(scheduledReviewId, reviewData, userId) {
           userId,
           completedAt: new Date(),
           difficultyRating,
-          responseTimeSeconds,
         },
       });
 
@@ -221,7 +220,6 @@ export async function getCardReviewHistory(cardId, userId) {
   return cardHistory.map((review) => ({
     completedAt: review.completedAt,
     difficultyRating: review.difficultyRating,
-    responseTime: review.responseTimeSeconds,
     intervalDays: review.scheduledReview.intervalDays,
     scheduledFor: review.scheduledReview.dueDate,
   }));
