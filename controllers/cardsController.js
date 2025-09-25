@@ -4,7 +4,7 @@ export async function createCard(req, res, next) {
   try {
     const { topicId: topicIdStr, question, answer } = req.body;
     const topicId = parseInt(topicIdStr);
-    const userId = req.apiUserid;
+    const userId = req.apiUserId;
 
     if (isNaN(topicId) || !question || !answer) {
       const error = new Error("Topic ID, question, and answer are required");
@@ -47,7 +47,7 @@ export async function createCard(req, res, next) {
 export async function getTopicCards(req, res, next) {
   try {
     const topicId = parseInt(req.params.topicId);
-    const userId = req.apiUserid;
+    const userId = req.apiUserId;
 
     if (isNaN(topicId)) {
       const error = new Error("Invalid topic ID");
@@ -72,7 +72,7 @@ export async function getTopicCards(req, res, next) {
 export async function getCardById(req, res, next) {
   try {
     const cardId = parseInt(req.params.id);
-    const userId = req.apiUserid;
+    const userId = req.apiUserId;
 
     if (isNaN(cardId)) {
       const error = new Error("Invalid card ID");
@@ -98,7 +98,7 @@ export async function updateCard(req, res, next) {
   try {
     const cardId = parseInt(req.params.id);
     const { question, answer } = req.body;
-    const userId = req.apiUserid;
+    const userId = req.apiUserId;
 
     if (isNaN(cardId)) {
       const error = new Error("Invalid card ID or user ID");
@@ -145,7 +145,7 @@ export async function updateCard(req, res, next) {
 export async function deleteCard(req, res, next) {
   try {
     const cardId = parseInt(req.params.id);
-    const userId = req.apiUserid;
+    const userId = req.apiUserId;
 
     if (isNaN(cardId)) {
       const error = new Error("Invalid card ID");
@@ -171,7 +171,7 @@ export async function deleteCard(req, res, next) {
 
 export async function searchCards(req, res, next) {
   try {
-    const userId = req.apiUserid;
+    const userId = req.apiUserId;
     const { search } = req.query;
 
     if (!search || search.trim().length < 2) {

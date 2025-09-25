@@ -42,10 +42,13 @@ app.post("/api/users/register", usersController.register);
 app.post("/api/users/login", usersController.login);
 
 //GOOGLE OAUTH 
-app.use("/auth", guard, authRoutes)
+app.use("/api/auth", guard, authRoutes)
+
+//CALENDAR ROUTES
+app.use("/api/calendar", guard, calendarRoutes);
 
 // USERS ROUTES
-app.get("/api/users/profile", guard, usersController.getUserById);
+app.get("/api/users/profile", guard, usersController.getUserProfile);
 app.get("/api/users/dashboard", guard, usersController.getDashboard);
 
 // TOPICS ROUTES

@@ -1,5 +1,5 @@
 import express from "express";
-import { generateAuthUrl, getTokenFromCode,hasValidTokens, revokeTokens, syncPendingStudySessions } from "../controllers/googleCalendarOAuth.js";
+import { generateAuthUrl, getTokenFromCode,syncPendingStudySessions } from "../controllers/googleCalendarOAuth.js";
 
 const router = express.Router();
 

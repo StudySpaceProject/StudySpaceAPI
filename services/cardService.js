@@ -52,7 +52,7 @@ export async function createCard(topicId, cardData, userId) {
       });
       console.log(`Evento creado en Calendar para card ${card.id}`);
     } catch (error) {
-      console.log(`Calendar no disponible para card ${card.id}:`, calendarError.message)
+      console.log(`Calendar no disponible para card ${card.id}:`, error.message)
     }
 
     return card;
@@ -268,7 +268,7 @@ export async function deleteCard(cardId, userId) {
   };
 }
 
-export async function searchCard(userId, searchTerm) {
+export async function searchCards(userId, searchTerm) {
   const cards = await prisma.studyCard.findMany({
     where: {
       topic: { userId },
