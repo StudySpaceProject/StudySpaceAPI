@@ -1,14 +1,22 @@
 import express from "express";
-import { generateAuthUrl, getTokenFromCode } from "../controllers/googleCalendarOAuth.js";
+import { generateAuthUrl, getTokenFromCode,hasValidTokens, revokeTokens, syncPendingStudySessions } from "../controllers/googleCalendarOAuth.js";
 
 const router = express.Router();
 
-// Iniciar autorización Google para un usuario
-router.get("/:userId", (req, res) => {
-  const { userId } = req.params;
-  const url = generateAuthUrl() + `&state=${userId}`;
-  res.redirect(url);
+
+// Iniciar autorización Google
+router.get("/google/connect", (req, res) => {
+  try {
+    const userId = req.apiUserId; // Del JWT token
+    const url = generateAuthUrl() + `&state=${userId}`;
+    res.redirect(url);
+  } catch (error) {
+    res.status(500).json({ 
+      error: "Error iniciando autorización con Google"
+    });
+  }
 });
+
 
 // Callback de Google
 router.get("/google/callback", async (req, res) => {
@@ -16,14 +24,23 @@ router.get("/google/callback", async (req, res) => {
   const userId = req.query.state;
 
   if (!code || !userId) {
-    return res.status(400).send("Faltan parámetros");
+    return res.status(400).json({ error: "Faltan parámetros obligatorios",
+      details: "se requiere codigo de autorización y userId"
+    });
   }
 
   try {
     await getTokenFromCode(code, userId);
-    res.send("Autenticado con Google ✅. Tokens guardados en la DB.");
+
+    const syncResult = await syncPendingStudySessions(userId);
+
+    res.json({success: true, message: "Google calendar conectado", syncResult:{
+      synced: syncResult.synced || 0,
+      total: syncResult.total || 0,
+      message: syncResult.message
+    }});
   } catch (err) {
-    res.status(500).send("Error autenticando con Google");
+    res.status(500).json({ error: "Error durante el proceso de autenticación con google", details: err.message });
   }
 });
 

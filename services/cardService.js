@@ -1,4 +1,5 @@
 import prisma from "../lib/prisma.js";
+import { createStudySessionEvent, deleteCalendarEvent } from "../controllers/calendarController.js";
 
 export async function createCard(topicId, cardData, userId) {
   const { question, answer } = cardData;
@@ -29,11 +30,13 @@ export async function createCard(topicId, cardData, userId) {
       },
     });
 
+    // Schedule first review for the next day at 9 AM
+
     const tomorrowDate = new Date();
     tomorrowDate.setDate(tomorrowDate.getDate() + 1);
     tomorrowDate.setHours(9, 0, 0, 0);
 
-    await prisma.scheduledReview.create({
+    const scheduledReview = await prisma.scheduledReview.create({
       data: {
         cardId: card.id,
         userId,
@@ -41,6 +44,16 @@ export async function createCard(topicId, cardData, userId) {
         intervalDays: 1,
       },
     });
+
+    try {
+      await createStudySessionEvent(userId, {
+        ...scheduledReview,
+        card: { ...card, topic }
+      });
+      console.log(`Evento creado en Calendar para card ${card.id}`);
+    } catch (error) {
+      console.log(`Calendar no disponible para card ${card.id}:`, calendarError.message)
+    }
 
     return card;
   } catch (error) {
@@ -185,6 +198,34 @@ export async function updateCard(cardId, updatedInfo, userId) {
     },
   });
 
+  //if question changed, update calendar events
+  if (question) {
+    try {
+      const pendingReviews = await prisma.scheduledReview.findMany({
+        where: {
+          cardId,
+          completedReviews: { none: {} },
+          googleEventId: { not: null }
+        },
+        include: {
+          card: { include: { topic: true } }
+        }
+      });
+
+      // Recreate events
+      for (const review of pendingReviews) {
+        await deleteCalendarEvent(userId, review.googleEventId);
+        await createStudySessionEvent(userId, {
+          ...review,
+          card: { ...updatedCard, topic: updatedCard.topic }
+        });
+      }
+      console.log(`${pendingReviews.length} eventos actualizados en Calendar`);
+    } catch (calendarError) {
+      console.log("Error actualizando eventos de Calendar:", calendarError.message);
+    }
+  }
+
   return updatedCard;
 }
 
@@ -198,6 +239,24 @@ export async function deleteCard(cardId, userId) {
 
   if (!existingCard) {
     throw new Error("Card not found or unauthorized acces");
+  }
+
+  // Delete calendar events before deleting the card
+  try {
+    const pendingReviews = await prisma.scheduledReview.findMany({
+      where: {
+        cardId,
+        completedReviews: { none: {} },
+        googleEventId: { not: null }
+      }
+    });
+
+    for (const review of pendingReviews) {
+      await deleteCalendarEvent(userId, review.googleEventId);
+    }
+    console.log(`${pendingReviews.length} eventos eliminados de Calendar`);
+  } catch (calendarError) {
+    console.log("Error eliminando eventos de Calendar:", calendarError.message);
   }
 
   await prisma.studyCard.delete({

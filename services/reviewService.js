@@ -65,6 +65,18 @@ export async function completeReview(scheduledReviewId, reviewData, userId) {
         throw new Error("Scheduled review not found or already completed");
       }
 
+
+      // Delete existing Google Calendar event if any
+
+      if (scheduledReview.googleEventId) {
+      try {
+        await deleteCalendarEvent(userId, scheduledReview.googleEventId);
+        console.log(`Evento actual eliminado de Calendar: ${scheduledReview.googleEventId}`);
+      } catch (calendarError) {
+        console.log("Error eliminando evento actual:", calendarError.message);
+      }
+    }
+
       const completedReview = await tx.completedReview.create({
         data: {
           scheduledReviewId,
@@ -99,6 +111,16 @@ export async function completeReview(scheduledReviewId, reviewData, userId) {
         nextInterval,
       };
     });
+
+    try {
+      await createStudySessionEvent(userId, {
+        ...result.nextReview,
+        card: result.cardData
+      });
+      console.log(`Próximo evento creado en Calendar para ${result.nextInterval} días`);
+    } catch (calendarError) {
+      console.log("Error creando próximo evento:", calendarError.message);
+    }
 
     return result;
   } catch (error) {
@@ -238,6 +260,16 @@ export async function rescheduleReview(scheduledReviewId, newDate, userId) {
     throw new Error("Scheduled review not found or already completed");
   }
 
+  if (review.googleEventId) {
+    try {
+      // delete old event
+      await deleteCalendarEvent(userId, review.googleEventId);
+      console.log(`Evento viejo eliminado de Calendar`);
+    } catch (calendarError) {
+      console.log("Error eliminando evento viejo:", calendarError.message);
+    }
+  }
+
   const updatedReview = await prisma.scheduledReview.update({
     where: { id: scheduledReviewId },
     data: { dueDate: newDate },
@@ -254,6 +286,16 @@ export async function rescheduleReview(scheduledReviewId, newDate, userId) {
       },
     },
   });
+
+  // create new event
+
+  try {
+    await createStudySessionEvent(userId, updatedReview);
+    console.log(`✅ Nuevo evento creado en Calendar para ${newDate}`);
+  } catch (calendarError) {
+    console.log("📅 Error creando nuevo evento:", calendarError.message);
+  }
+
 
   return updatedReview;
 }
