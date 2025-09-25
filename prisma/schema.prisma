@@ -77,7 +77,6 @@ model CompletedReview {
   userId              Int      @map("user_id")
   completedAt         DateTime @map("completed_at")
   difficultyRating    Int      @map("difficulty_rating")
-  responseTimeSeconds Int?     @map("response_time_seconds")
   createdAt           DateTime @default(now()) @map("created_at")
 
   // Relaciones

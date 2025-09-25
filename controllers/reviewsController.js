@@ -2,13 +2,7 @@ import * as reviewService from "./../services/reviewService.js";
 
 export async function getPendingReviews(req, res, next) {
   try {
-    const userId = parseInt(req.params.userId);
-
-    if (isNaN(userId)) {
-      const error = new Error("Invalid user ID");
-      error.status = 400;
-      return next(error);
-    }
+    const userId = req.apiUserId;
 
     const pendingReviews = await reviewService.getPendingReviews(userId);
 
@@ -22,12 +16,12 @@ export async function getPendingReviews(req, res, next) {
 
 export async function completeReview(req, res, next) {
   try {
-    const { scheduledReviewId, difficultyRating, responseTimeSeconds, userId } =
-      req.body;
+    const { scheduledReviewId, difficultyRating } = req.body;
+    const userId = req.apiUserId;
 
-    if (!scheduledReviewId || !difficultyRating || !userId) {
+    if (!scheduledReviewId || !difficultyRating) {
       const error = new Error(
-        "Scheduled review ID, difficulty rating, and user ID are required"
+        "Scheduled review ID, difficulty rating are required"
       );
       error.status = 400;
       return next(error);
@@ -36,17 +30,6 @@ export async function completeReview(req, res, next) {
     if (![1, 2, 3].includes(difficultyRating)) {
       const error = new Error(
         "Difficulty rating must be 1 (easy), 2 (medium), or 3 (difficult)"
-      );
-      error.status = 400;
-      return next(error);
-    }
-
-    if (
-      responseTimeSeconds &&
-      (responseTimeSeconds < 0 || responseTimeSeconds > 3600)
-    ) {
-      const error = new Error(
-        "Response time must be between 0 and 3600 seconds"
       );
       error.status = 400;
       return next(error);
@@ -77,14 +60,8 @@ export async function completeReview(req, res, next) {
 
 export async function getUpcomingReviews(req, res, next) {
   try {
-    const userId = parseInt(req.params.userId);
+    const userId = req.apiUserId;
     const days = parseInt(req.query.days) || 7;
-
-    if (isNaN(userId)) {
-      const error = new Error("Invalid user ID");
-      error.status = 400;
-      return next(error);
-    }
 
     if (days < 1 || days > 30) {
       const error = new Error("Days parameter must be between 1 and 30");
@@ -108,10 +85,10 @@ export async function getUpcomingReviews(req, res, next) {
 export async function getCardReviewHistory(req, res, next) {
   try {
     const cardId = parseInt(req.params.cardId);
-    const userId = parseInt(req.query.userId);
+    const userId = req.apiUserId;
 
-    if (isNaN(cardId) || isNaN(userId)) {
-      const error = new Error("Invalid card ID or user ID");
+    if (isNaN(cardId)) {
+      const error = new Error("Invalid card ID");
       error.status = 400;
       return next(error);
     }
@@ -131,11 +108,11 @@ export async function getCardReviewHistory(req, res, next) {
 export async function rescheduleReview(req, res, next) {
   try {
     const scheduledReviewId = parseInt(req.params.reviewId);
-    const { newDate, userId: userIdStr } = req.body;
-    const userId = parseInt(userIdStr);
+    const { newDate } = req.body;
+    const userId = req.apiUserId;
 
-    if (isNaN(scheduledReviewId) || !newDate || isNaN(userId)) {
-      const error = new Error("Review ID, new date, and user ID are required");
+    if (isNaN(scheduledReviewId) || !newDate) {
+      const error = new Error("Review ID, new date are required");
       error.status = 400;
       return next(error);
     }

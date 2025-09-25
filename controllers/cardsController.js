@@ -2,19 +2,12 @@ import * as cardService from "./../services/cardService.js";
 
 export async function createCard(req, res, next) {
   try {
-    const {
-      topicId: topicIdStr,
-      question,
-      answer,
-      userId: userIdStr,
-    } = req.body;
+    const { topicId: topicIdStr, question, answer } = req.body;
     const topicId = parseInt(topicIdStr);
-    const userId = parseInt(userIdStr);
+    const userId = req.apiUserid;
 
-    if (isNaN(topicId) || !question || !answer || isNaN(userId)) {
-      const error = new Error(
-        "Topic ID, question, answer, and user ID are required"
-      );
+    if (isNaN(topicId) || !question || !answer) {
+      const error = new Error("Topic ID, question, and answer are required");
       error.status = 400;
       return next(error);
     }
@@ -54,10 +47,10 @@ export async function createCard(req, res, next) {
 export async function getTopicCards(req, res, next) {
   try {
     const topicId = parseInt(req.params.topicId);
-    const userId = parseInt(req.query.userId);
+    const userId = req.apiUserid;
 
-    if (isNaN(topicId) || isNaN(userId)) {
-      const error = new Error("Invalid topic ID or user ID");
+    if (isNaN(topicId)) {
+      const error = new Error("Invalid topic ID");
       error.status = 400;
       return next(error);
     }
@@ -79,10 +72,10 @@ export async function getTopicCards(req, res, next) {
 export async function getCardById(req, res, next) {
   try {
     const cardId = parseInt(req.params.id);
-    const userId = parseInt(req.query.userId);
+    const userId = req.apiUserid;
 
-    if (isNaN(cardId) || isNaN(userId)) {
-      const error = new Error("Invalid card ID or user ID");
+    if (isNaN(cardId)) {
+      const error = new Error("Invalid card ID");
       error.status = 400;
       return next(error);
     }
@@ -104,10 +97,10 @@ export async function getCardById(req, res, next) {
 export async function updateCard(req, res, next) {
   try {
     const cardId = parseInt(req.params.id);
-    const { question, answer, userId: userIdStr } = req.body;
-    const userId = parseInt(userIdStr);
+    const { question, answer } = req.body;
+    const userId = req.apiUserid;
 
-    if (isNaN(cardId) || isNaN(userId)) {
+    if (isNaN(cardId)) {
       const error = new Error("Invalid card ID or user ID");
       error.status = 400;
       return next(error);
@@ -152,10 +145,10 @@ export async function updateCard(req, res, next) {
 export async function deleteCard(req, res, next) {
   try {
     const cardId = parseInt(req.params.id);
-    const userId = parseInt(req.query.userId);
+    const userId = req.apiUserid;
 
-    if (isNaN(cardId) || isNaN(userId)) {
-      const error = new Error("Invalid card ID or user ID");
+    if (isNaN(cardId)) {
+      const error = new Error("Invalid card ID");
       error.status = 400;
       return next(error);
     }
@@ -178,14 +171,8 @@ export async function deleteCard(req, res, next) {
 
 export async function searchCards(req, res, next) {
   try {
-    const userId = parseInt(req.params.userId);
+    const userId = req.apiUserid;
     const { search } = req.query;
-
-    if (isNaN(userId)) {
-      const error = new Error("Invalid user ID");
-      error.status = 400;
-      return next(error);
-    }
 
     if (!search || search.trim().length < 2) {
       const error = new Error("Search term must be at least 2 characters long");

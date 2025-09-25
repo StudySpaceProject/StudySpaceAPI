@@ -2,10 +2,11 @@ import * as topicService from "./../services/topicService.js";
 
 export async function createTopic(req, res, next) {
   try {
-    const { userId, name, description, color } = req.body;
+    const { name, description, color } = req.body;
+    const userId = req.apiUserId;
 
-    if (!userId || !name) {
-      const error = new Error("User ID and topic name are required");
+    if (!name) {
+      const error = new Error("topic name is required");
       error.status = 400;
       return next(error);
     }
@@ -36,13 +37,7 @@ export async function createTopic(req, res, next) {
 
 export async function getUserTopics(req, res, next) {
   try {
-    const userId = parseInt(req.params.userId);
-
-    if (isNaN(userId)) {
-      const error = new Error("Invalid user ID");
-      error.status = 400;
-      return next(error);
-    }
+    const userId = req.apiUserId;
 
     const topics = await topicService.getUserTopics(userId);
 
@@ -55,10 +50,10 @@ export async function getUserTopics(req, res, next) {
 export async function getTopicById(req, res, next) {
   try {
     const topicId = parseInt(req.params.id);
-    const userId = parseInt(req.query.userId);
+    const userId = req.apiUserId;
 
-    if (isNaN(topicId) || isNaN(userId)) {
-      const error = new Error("Invalid topic ID or user ID");
+    if (isNaN(topicId)) {
+      const error = new Error("Invalid topic ID");
       error.status = 400;
       return next(error);
     }
@@ -80,11 +75,11 @@ export async function getTopicById(req, res, next) {
 export async function updateTopic(req, res, next) {
   try {
     const topicId = parseInt(req.params.id);
-    const { userId: userIdStr, name, description, color } = req.body;
-    const userId = parseInt(userIdStr);
+    const { name, description, color } = req.body;
+    const userId = req.apiUserId;
 
-    if (isNaN(topicId) || isNaN(userId)) {
-      const error = new Error("Invalid topic ID or user ID missing");
+    if (isNaN(topicId)) {
+      const error = new Error("Invalid topic ID");
       error.status = 400;
       return next(error);
     }
@@ -121,10 +116,10 @@ export async function updateTopic(req, res, next) {
 export async function deleteTopic(req, res, next) {
   try {
     const topicId = parseInt(req.params.id);
-    const userId = parseInt(req.query.userId);
+    const userId = req.apiUserId;
 
-    if (isNaN(topicId) || isNaN(userId)) {
-      const error = new Error("Invalid topic ID or user ID");
+    if (isNaN(topicId)) {
+      const error = new Error("Invalid topic ID");
       error.status = 400;
       return next(error);
     }
@@ -147,14 +142,8 @@ export async function deleteTopic(req, res, next) {
 
 export async function searchTopics(req, res, next) {
   try {
-    const userId = parseInt(req.params.userId);
+    const userId = req.apiUserId;
     const { search } = req.query;
-
-    if (isNaN(userId)) {
-      const error = new Error("Invalid user ID");
-      error.status = 400;
-      return next(error);
-    }
 
     if (!search || search.trim().length < 2) {
       const error = new Error("Search term must be at least 2 characters long");
@@ -162,10 +151,10 @@ export async function searchTopics(req, res, next) {
       return next(error);
     }
 
-    const cards = await cardService.searchCards(userId, search);
+    const topics = await topicService.searchTopics(userId, search);
 
     res.json({
-      cards,
+      topics,
       searchTerm: search,
     });
   } catch (error) {

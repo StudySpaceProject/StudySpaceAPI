@@ -1,4 +1,5 @@
 import * as userService from "./../services/userService.js";
+import { generateToken } from "../middleware/authMiddleware.js";
 
 export async function register(req, res, next) {
   try {
@@ -18,9 +19,16 @@ export async function register(req, res, next) {
 
     const user = await userService.createUser(email, password);
 
-    res.status(201).json({
-      user,
-      message: "User created succesfully",
+    generateToken(user, (err, token) => {
+      if (err) {
+        return next(err);
+      }
+
+      res.status(201).json({
+        user,
+        token,
+        message: "User created successfully",
+      });
     });
   } catch (error) {
     if (error.message === "Email already exists") {
@@ -58,27 +66,28 @@ export async function login(req, res, next) {
       return next(error);
     }
 
-    res.json({
-      message: "Login successful",
-      user: {
-        id: user.id,
-        email: user.email,
-      },
+    generateToken(user, (err, token) => {
+      if (err) {
+        return next(err);
+      }
+
+      res.json({
+        message: "Login successful",
+        user: {
+          id: user.id,
+          email: user.email,
+        },
+        token,
+      });
     });
   } catch (error) {
     next(error);
   }
 }
 
-export async function getUserById(req, res, next) {
+export async function getUserProfile(req, res, next) {
   try {
-    const userId = parseInt(req.params.id);
-
-    if (isNaN(userId)) {
-      const error = new Error("Invalid user ID");
-      error.status = 400;
-      return next(error);
-    }
+    const userId = req.apiUserId;
 
     const user = await userService.getUserById(userId);
 
@@ -93,13 +102,7 @@ export async function getUserById(req, res, next) {
 
 export async function getDashboard(req, res, next) {
   try {
-    const userId = parseInt(req.params.id);
-
-    if (isNaN(userId)) {
-      const error = new Error("Invalid user ID");
-      error.status = 400;
-      return next(error);
-    }
+    const userId = req.apiUserId;
 
     const dashboard = await userService.getUserDashboard(userId);
 
