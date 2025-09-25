@@ -37,14 +37,14 @@ app.use(express.static(path.join(import.meta.dirname, "public")));
 /**
  * API ROUTES
  */
-
-// CALENDAR ROUTES
-app.use("/calendar", calendarRoutes);
-app.use("/auth", authRoutes);
-
-// USERS ROUTES
+//PUBLIC ROUTES
 app.post("/api/users/register", usersController.register);
 app.post("/api/users/login", usersController.login);
+
+//GOOGLE OAUTH 
+app.use("/auth", guard, authRoutes)
+
+// USERS ROUTES
 app.get("/api/users/profile", guard, usersController.getUserById);
 app.get("/api/users/dashboard", guard, usersController.getDashboard);
 
