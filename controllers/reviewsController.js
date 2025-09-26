@@ -37,7 +37,7 @@ export async function completeReview(req, res, next) {
 
     const result = await reviewService.completeReview(
       scheduledReviewId,
-      { difficultyRating, responseTimeSeconds },
+      { difficultyRating},
       userId
     );
 

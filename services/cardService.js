@@ -35,6 +35,8 @@ export async function createCard(topicId, cardData, userId) {
     const tomorrowDate = new Date();
     tomorrowDate.setDate(tomorrowDate.getDate() + 1);
     tomorrowDate.setHours(9, 0, 0, 0);
+    
+
 
     const scheduledReview = await prisma.scheduledReview.create({
       data: {
@@ -46,13 +48,15 @@ export async function createCard(topicId, cardData, userId) {
     });
 
     try {
-      await createStudySessionEvent(userId, {
+
+      const eventResult = await createStudySessionEvent(userId, {
         ...scheduledReview,
         card: { ...card, topic }
       });
+      console.log(`RESULTADO del evento:`, eventResult ? "ÉXITO" : "NULL");
       console.log(`Evento creado en Calendar para card ${card.id}`);
     } catch (error) {
-      console.log(`Calendar no disponible para card ${card.id}:`, error.message)
+      console.log(`ERROR creando evento para card ${card.id}:`, error.message);
     }
 
     return card;

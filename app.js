@@ -1,5 +1,4 @@
 import express from "express";
-import calendarRoutes from "./routes/calendar.js";
 import authRoutes from "./routes/auth.js";
 import cors from "cors";
 import path from "path";
@@ -42,10 +41,8 @@ app.post("/api/users/register", usersController.register);
 app.post("/api/users/login", usersController.login);
 
 //GOOGLE OAUTH 
-app.use("/api/auth", guard, authRoutes)
+app.use("/api/auth", authRoutes)
 
-//CALENDAR ROUTES
-app.use("/api/calendar", guard, calendarRoutes);
 
 // USERS ROUTES
 app.get("/api/users/profile", guard, usersController.getUserProfile);
