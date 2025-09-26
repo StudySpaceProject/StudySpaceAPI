@@ -130,6 +130,7 @@ export async function completeReview(scheduledReviewId, reviewData, userId) {
   }
 }
 
+//algorithm to calculate next interval based on difficulty and previous interval
 function calculateNextInterval(
   difficultyRating,
   previousInterval = 1,

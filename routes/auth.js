@@ -5,7 +5,7 @@ import { generateAuthUrl, getTokenFromCode,syncPendingStudySessions } from "../c
 const router = express.Router();
 
 
-// Iniciar autorización Google
+// start Google OAuth
 router.get("/google/connect",guard,(req, res) => {
   try {
     const userId = req.apiUserId; // Del JWT token
@@ -19,7 +19,7 @@ router.get("/google/connect",guard,(req, res) => {
 });
 
 
-// Callback de Google
+// Callback Google
 router.get("/google/callback", async (req, res) => {
   const code = req.query.code;
   const userId = req.query.state;
