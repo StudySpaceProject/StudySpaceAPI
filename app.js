@@ -18,7 +18,7 @@ const allowedOrigins = [
   "http://localhost:1234", // Parcel default
   "http://localhost:3000", // Express default  
   "http://localhost:5173", // Vite
-  "http://localhost:8080", // Webpack dev server
+  "https://studyspaceapi-production.up.railway.app"
 ];
 
 if (!isDevelopment) {
