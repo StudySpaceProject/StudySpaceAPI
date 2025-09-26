@@ -3,16 +3,11 @@ import { createStudySessionEvent, deleteCalendarEvent } from "../controllers/cal
 
 export async function getPendingReviews(userId) {
   const now = new Date();
-  const endOfTomorrow = new Date();
-  endOfTomorrow.setDate(now.getDate() + 1);
-  endOfTomorrow.setHours(23, 59, 59, 999);
-
-  //te da las reviews pendientes hasta el final del día de mañana
 
   const pendingReviews = await prisma.scheduledReview.findMany({
     where: {
       userId,
-      dueDate: { lte: endOfTomorrow },
+      dueDate: { lte: now },
       completedReviews: { none: {} },
     },
     include: {
@@ -30,6 +25,7 @@ export async function getPendingReviews(userId) {
     },
     orderBy: { dueDate: "asc" },
   });
+
 
   return pendingReviews.map((review) => ({
     id: review.id,
