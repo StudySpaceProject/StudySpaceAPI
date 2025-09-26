@@ -11,15 +11,27 @@ import { guard } from "./middleware/authMiddleware.js";
 
 const app = express();
 //cors configuration
+
+const isDevelopment = process.env.NODE_ENV !== 'production';
+
+const allowedOrigins = [
+  "http://localhost:1234", // Parcel default
+  "http://localhost:3000", // Express default  
+  "http://localhost:5173", // Vite
+  "http://localhost:8080", // Webpack dev server
+];
+
+if (!isDevelopment) {
+  allowedOrigins.push(
+    process.env.FRONTEND_URL || "https://frontend.com",
+    process.env.API_URL || "https://api.railway.app"
+  );
+}
 app.use(
   cors({
-    origin: [
-      "http://localhost:5173", // Development
-      "http://localhost:3000", // Alt development
-      "https://dominio", // Production
-    ],
+    origin: allowedOrigins,
     credentials: true,
-    methods: ["GET", "POST", "PUT", "DELETE"],
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allowedHeaders: ["Content-Type", "Authorization"],
   })
 );
