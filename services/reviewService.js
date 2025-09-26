@@ -1,4 +1,5 @@
 import prisma from "../lib/prisma.js";
+import { createStudySessionEvent, deleteCalendarEvent } from "../controllers/calendarController.js";
 
 export async function getPendingReviews(userId) {
   const now = new Date();
@@ -24,6 +25,7 @@ export async function getPendingReviews(userId) {
     },
     orderBy: { dueDate: "asc" },
   });
+
 
   return pendingReviews.map((review) => ({
     id: review.id,
@@ -291,9 +293,9 @@ export async function rescheduleReview(scheduledReviewId, newDate, userId) {
 
   try {
     await createStudySessionEvent(userId, updatedReview);
-    console.log(`✅ Nuevo evento creado en Calendar para ${newDate}`);
+    console.log(`Nuevo evento creado en Calendar para ${newDate}`);
   } catch (calendarError) {
-    console.log("📅 Error creando nuevo evento:", calendarError.message);
+    console.log("Error creando nuevo evento:", calendarError.message);
   }
 
 

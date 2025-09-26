@@ -19,17 +19,16 @@ export async function register(req, res, next) {
 
     const user = await userService.createUser(email, password);
 
-    generateToken(user, (err, token) => {
-      if (err) {
-        return next(err);
-      }
-
+    try {
+      const token = generateToken(user);
       res.status(201).json({
+        message: "User created successfully",
         user,
         token,
-        message: "User created successfully",
       });
-    });
+    } catch (error) {
+      next(error);
+    }
   } catch (error) {
     if (error.message === "Email already exists") {
       error.status = 409;

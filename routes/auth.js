@@ -1,11 +1,12 @@
 import express from "express";
-import { generateAuthUrl, getTokenFromCode,hasValidTokens, revokeTokens, syncPendingStudySessions } from "../controllers/googleCalendarOAuth.js";
+import { guard } from "../middleware/authMiddleware.js";
+import { generateAuthUrl, getTokenFromCode,syncPendingStudySessions } from "../controllers/googleCalendarOAuth.js";
 
 const router = express.Router();
 
 
 // Iniciar autorización Google
-router.get("/google/connect", (req, res) => {
+router.get("/google/connect",guard,(req, res) => {
   try {
     const userId = req.apiUserId; // Del JWT token
     const url = generateAuthUrl() + `&state=${userId}`;
