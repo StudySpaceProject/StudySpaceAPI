@@ -12,8 +12,6 @@ import { guard } from "./middleware/authMiddleware.js";
 const app = express();
 //cors configuration
 
-const isDevelopment = process.env.NODE_ENV !== 'production';
-
 const allowedOrigins = [
   "http://localhost:1234", // Parcel default
   "http://localhost:3000", // Express default  
@@ -21,12 +19,6 @@ const allowedOrigins = [
   "https://studyspaceapi-production.up.railway.app"
 ];
 
-if (!isDevelopment) {
-  allowedOrigins.push(
-    process.env.FRONTEND_URL || "https://frontend.com",
-    process.env.API_URL || "https://api.railway.app"
-  );
-}
 app.use(
   cors({
     origin: allowedOrigins,
@@ -40,7 +32,11 @@ app.use(
  * GENERAL ROUTES
  */
 
-app.use(morgan("dev"));
+if (process.env.NODE_ENV === 'production') {
+  app.use(morgan('combined'));
+} else {
+  app.use(morgan('dev'));
+}
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 app.use(express.static(path.join(import.meta.dirname, "public")));
@@ -90,6 +86,16 @@ app.put(
   guard,
   reviewsController.rescheduleReview
 );
+
+//HEALTH CHECK
+app.get('/', (req, res) => {
+  res.json({
+    status: 'StudySpace API is running',
+    version: '1.0.0',
+    environment: process.env.NODE_ENV,
+    timestamp: new Date().toISOString()
+  });
+});
 
 //ROUTE NOT FOUND 404
 app.use((req, res) => {
