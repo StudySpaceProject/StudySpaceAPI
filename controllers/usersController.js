@@ -46,6 +46,7 @@ export async function login(req, res, next) {
       error.status = 400;
       return next(error);
     }
+
     const user = await userService.getUserByEmail(email);
 
     if (!user) {
@@ -65,19 +66,12 @@ export async function login(req, res, next) {
       return next(error);
     }
 
-    generateToken(user, (err, token) => {
-      if (err) {
-        return next(err);
-      }
+    const token = generateToken(user);
 
-      res.json({
-        message: "Login successful",
-        user: {
-          id: user.id,
-          email: user.email,
-        },
-        token,
-      });
+    res.json({
+      message: "Login successful",
+      user: { id: user.id, email: user.email },
+      token,
     });
   } catch (error) {
     next(error);
