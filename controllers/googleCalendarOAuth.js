@@ -21,11 +21,10 @@ function generateAuthUrl() {
 }
 
 async function getTokenFromCode(code, userId) {
-  
   try {
     const { tokens } = await oAuth2Client.getToken(code);
 
-    if(!tokens.access_token){
+    if (!tokens.access_token) {
       throw new Error("No se pudo obtener el acces token");
     }
     await prisma.user.update({
@@ -37,13 +36,25 @@ async function getTokenFromCode(code, userId) {
     });
 
     return tokens;
-
   } catch (error) {
     console.error("Error en getTokenFromCode:", error);
     throw new Error(`Error al procesar tokens de Google: ${error.message}`);
   }
 }
 
+async function checkGoogleAuth(userId) {
+  try {
+    const user = await prisma.user.findUnique({
+      where: { id: Number(userId) },
+      select: { googleAccessToken: true, googleRefreshToken: true },
+    });
+
+    return !!(user?.googleAccessToken && user?.googleRefreshToken);
+  } catch (error) {
+    console.error("Error verificando autenticación de Google:", error);
+    return false;
+  }
+}
 
 async function syncPendingStudySessions(userId) {
   try {
@@ -53,19 +64,24 @@ async function syncPendingStudySessions(userId) {
         userId: Number(userId),
         googleEventId: null,
         completedReviews: { none: {} },
-        dueDate: { gte: new Date() }
+        dueDate: { gte: new Date() },
       },
       include: {
-        card: { include: { topic: true } }
+        card: { include: { topic: true } },
       },
-      take: 20 
+      take: 20,
     });
 
     if (pendingSessions.length === 0) {
-      return { success: true, message: "No hay sesiones pendientes para sincronizar" };
+      return {
+        success: true,
+        message: "No hay sesiones pendientes para sincronizar",
+      };
     }
 
-    console.log(`Sincronizando ${pendingSessions.length} sesiones para usuario ${userId}`);
+    console.log(
+      `Sincronizando ${pendingSessions.length} sesiones para usuario ${userId}`
+    );
 
     let successCount = 0;
     const { createStudySessionEvent } = await import("./calendarController.js");
@@ -75,7 +91,10 @@ async function syncPendingStudySessions(userId) {
         const event = await createStudySessionEvent(userId, session);
         if (event) successCount++;
       } catch (error) {
-        console.log(`Error creando evento para sesión ${session.id}:`, error.message);
+        console.log(
+          `Error creando evento para sesión ${session.id}:`,
+          error.message
+        );
       }
     }
 
@@ -83,7 +102,7 @@ async function syncPendingStudySessions(userId) {
       success: true,
       message: `${successCount} eventos creados de ${pendingSessions.length} sesiones`,
       synced: successCount,
-      total: pendingSessions.length
+      total: pendingSessions.length,
     };
   } catch (error) {
     console.error("Error sincronizando sesiones:", error);
@@ -94,5 +113,6 @@ async function syncPendingStudySessions(userId) {
 export {
   generateAuthUrl,
   getTokenFromCode,
+  checkGoogleAuth,
   syncPendingStudySessions,
 };
