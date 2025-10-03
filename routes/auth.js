@@ -1,5 +1,6 @@
 import express from "express";
 import jwt from "jsonwebtoken";
+import prisma from "../lib/prisma.js";
 import {
   generateAuthUrl,
   getTokenFromCode,
@@ -18,7 +19,7 @@ router.get("/google/status", async (req, res) => {
     if (req.cookies && req.cookies.token) {
       token = req.cookies.token;
     } else if (req.headers.authorization) {
-      token = req.headers.authorization.split;
+      token = req.headers.authorization.split(" ")[1];
     }
     if (!token) {
       return res.status(401).json({ authenticated: false });
@@ -59,7 +60,7 @@ router.get("/google/callback", async (req, res) => {
 
   if (!code || !userId) {
     const frontendUrl = process.env.FRONTEND_URL || "http://localhost:1234";
-    return res.redirect(`${frontendUrl}/dashboard?google_auth=error`);
+    return res.redirect(`${frontendUrl}/topics?google_auth=error`);
   }
 
   try {
@@ -88,11 +89,11 @@ router.get("/google/callback", async (req, res) => {
       message: encodeURIComponent(syncResult.message || ""),
     });
 
-    res.redirect(`${frontendUrl}/dashboard?${params.toString()}`);
+    res.redirect(`${frontendUrl}/topics?${params.toString()}`);
   } catch (err) {
     console.error("Error en /google/callback:", err);
     const frontendUrl = process.env.FRONTEND_URL || "http://localhost:1234";
-    res.redirect(`${frontendUrl}/dashboard?google_auth=error`);
+    res.redirect(`${frontendUrl}/topics?google_auth=error`);
   }
 });
 
