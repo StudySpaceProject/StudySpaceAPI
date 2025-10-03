@@ -1,20 +1,31 @@
 import express from "express";
-import { guard } from "../middleware/authMiddleware.js";
+import jwt from "jsonwebtoken";
 import {
   generateAuthUrl,
   getTokenFromCode,
   syncPendingStudySessions,
+  checkGoogleAuth,
 } from "../controllers/googleCalendarOAuth.js";
 
 const router = express.Router();
 
 // verify Google Calendar authentication status
-router.get("/google/status", guard, async (req, res) => {
+router.get("/google/status", async (req, res) => {
   try {
-    const userId = req.apiUserId;
-    const { checkGoogleAuth } = await import(
-      "../controllers/googleCalendarOAuth.js"
-    );
+    let token = null;
+
+    if (req.cookies && req.cookies.token) {
+      token = req.cookies.token;
+    } else if (req.headers.authorization) {
+      token = req.headers.authorization.split;
+    }
+    if (!token) {
+      return res.status(401).json({ authenticated: false });
+    }
+
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const userId = decoded.user_id;
+
     const hasAuth = await checkGoogleAuth(userId);
     res.json({ authenticated: hasAuth });
   } catch (err) {
@@ -23,15 +34,20 @@ router.get("/google/status", guard, async (req, res) => {
 });
 
 // start Google OAuth
-router.get("/google/connect", guard, (req, res) => {
+router.get("/google/connect", (req, res) => {
   try {
-    const userId = req.apiUserId; // Del JWT token
+    const token = req.query.token;
+    if (!token) {
+      return res.status(400).json({ error: "Token not provided", status: 401 });
+    }
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const userId = decoded.user_id;
+
     const url = generateAuthUrl() + `&state=${userId}`;
     res.redirect(url);
   } catch (error) {
-    res.status(500).json({
-      error: "Error iniciando autorización con Google",
-    });
+    const frontendUrl = process.env.FRONTEND_URL || "http://localhost:1234";
+    res.redirect(`${frontendUrl}/topics?google_auth=error`);
   }
 });
 
