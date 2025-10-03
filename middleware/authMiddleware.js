@@ -6,7 +6,7 @@ export function guard(req, res, next) {
   console.log("URL completa:", req.url);
 
   try {
-    // Extraer token paso a paso con logs
+    // extract token from various possible locations
     let tokenJWT = null;
 
     //check cookies
