@@ -1,5 +1,9 @@
 import * as userService from "./../services/userService.js";
-import { generateToken } from "../middleware/authMiddleware.js";
+import {
+  generateToken,
+  setTokenCookie,
+  clearTokenCookie,
+} from "../middleware/authMiddleware.js";
 
 export async function register(req, res, next) {
   try {
@@ -21,6 +25,10 @@ export async function register(req, res, next) {
 
     try {
       const token = generateToken(user);
+
+      //set httpOnly cookie
+      setTokenCookie(res, token);
+
       res.status(201).json({
         message: "User created successfully",
         user,
@@ -68,10 +76,26 @@ export async function login(req, res, next) {
 
     const token = generateToken(user);
 
+    //set httpOnly cookie
+    setTokenCookie(res, token);
+
     res.json({
       message: "Login successful",
       user: { id: user.id, email: user.email },
       token,
+    });
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function logout(req, res, next) {
+  try {
+    // Clear the token cookie
+    clearTokenCookie(res);
+
+    res.json({
+      message: "Logout successful",
     });
   } catch (error) {
     next(error);
