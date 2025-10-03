@@ -6,6 +6,7 @@ import {
   syncPendingStudySessions,
   checkGoogleAuth,
 } from "../controllers/googleCalendarOAuth.js";
+import { generateToken, setTokenCookie } from "../middleware/authMiddleware.js";
 
 const router = express.Router();
 
@@ -35,23 +36,15 @@ router.get("/google/status", async (req, res) => {
 
 // start Google OAuth
 router.get("/google/connect", (req, res) => {
-  console.log("=== DEBUG /google/connect ===");
-  console.log("Query completo:", req.query);
-  console.log("Token recibido:", req.query.token ? "SÍ" : "NO");
-  console.log("Longitud del token:", req.query.token?.length);
   try {
     const token = req.query.token;
     if (!token) {
-      console.log("ERROR: Token no proporcionado");
       return res.status(400).json({ error: "Token not provided", status: 401 });
     }
-    console.log("Intentando verificar JWT...");
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    console.log("JWT válido. User ID:", decoded.user_id);
     const userId = decoded.user_id;
 
     const url = generateAuthUrl() + `&state=${userId}`;
-    console.log("Redirigiendo a URL de Google OAuth:", url);
     res.redirect(url);
   } catch (error) {
     const frontendUrl = process.env.FRONTEND_URL || "http://localhost:1234";
@@ -73,6 +66,19 @@ router.get("/google/callback", async (req, res) => {
     await getTokenFromCode(code, userId);
 
     const syncResult = await syncPendingStudySessions(userId);
+
+    //get user
+    const user = await prisma.user.findUnique({
+      where: { id: Number(userId) },
+      select: { id: true, email: true },
+    });
+
+    //create toke JWT
+    const token = generateToken(user);
+
+    //set httpOnly cookie
+
+    setTokenCookie(res, token);
 
     const frontendUrl = process.env.FRONTEND_URL || "http://localhost:1234";
     const params = new URLSearchParams({
