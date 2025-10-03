@@ -3,6 +3,7 @@ import authRoutes from "./routes/auth.js";
 import cors from "cors";
 import path from "path";
 import morgan from "morgan";
+import cookieParser from "cookie-parser";
 import * as usersController from "./controllers/usersController.js";
 import * as topicsController from "./controllers/topicsController.js";
 import * as cardsController from "./controllers/cardsController.js";
@@ -14,9 +15,9 @@ const app = express();
 
 const allowedOrigins = [
   "http://localhost:1234", // Parcel default
-  "http://localhost:3000", // Express default  
+  "http://localhost:3000", // Express default
   "http://localhost:5173", // Vite
-  "https://studyspaceapi-production.up.railway.app"
+  "https://studyspaceapi-production.up.railway.app",
 ];
 
 app.use(
@@ -32,11 +33,12 @@ app.use(
  * GENERAL ROUTES
  */
 
-if (process.env.NODE_ENV === 'production') {
-  app.use(morgan('combined'));
+if (process.env.NODE_ENV === "production") {
+  app.use(morgan("combined"));
 } else {
-  app.use(morgan('dev'));
+  app.use(morgan("dev"));
 }
+app.use(cookieParser());
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 app.use(express.static(path.join(import.meta.dirname, "public")));
@@ -48,11 +50,11 @@ app.use(express.static(path.join(import.meta.dirname, "public")));
 app.post("/api/users/register", usersController.register);
 app.post("/api/users/login", usersController.login);
 
-//GOOGLE OAUTH 
-app.use("/api/auth", authRoutes)
-
+//GOOGLE OAUTH
+app.use("/api/auth", authRoutes);
 
 // USERS ROUTES
+app.get("/api/users/logout", guard, usersController.logout);
 app.get("/api/users/profile", guard, usersController.getUserProfile);
 app.get("/api/users/dashboard", guard, usersController.getDashboard);
 
@@ -88,12 +90,12 @@ app.put(
 );
 
 //HEALTH CHECK
-app.get('/', (req, res) => {
+app.get("/", (req, res) => {
   res.json({
-    status: 'StudySpace API is running',
-    version: '1.0.0',
+    status: "StudySpace API is running",
+    version: "1.0.0",
     environment: process.env.NODE_ENV,
-    timestamp: new Date().toISOString()
+    timestamp: new Date().toISOString(),
   });
 });
 
