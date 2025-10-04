@@ -12,13 +12,13 @@ export async function createCard(req, res, next) {
       return next(error);
     }
 
-    if (question.trim().length < 3 || answer.trim().length < 2) {
-      const error = new Error(
-        "Question must be at least 3 characters and answer at least 2 characters"
-      );
-      error.status = 400;
-      return next(error);
-    }
+    // if (question.trim().length < 3 || answer.trim().length < 2) {
+    //   const error = new Error(
+    //     "Question must be at least 3 characters and answer at least 2 characters"
+    //   );
+    //   error.status = 400;
+    //   return next(error);
+    // }
 
     const card = await cardService.createCard(
       topicId,
