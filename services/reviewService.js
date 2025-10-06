@@ -1,5 +1,8 @@
 import prisma from "../lib/prisma.js";
-import { createStudySessionEvent, deleteCalendarEvent } from "../controllers/calendarController.js";
+import {
+  createStudySessionEvent,
+  deleteCalendarEvent,
+} from "../controllers/calendarController.js";
 
 export async function getPendingReviews(userId) {
   const now = new Date();
@@ -26,7 +29,6 @@ export async function getPendingReviews(userId) {
     orderBy: { dueDate: "asc" },
   });
 
-
   return pendingReviews.map((review) => ({
     id: review.id,
     dueDate: review.dueDate,
@@ -40,7 +42,12 @@ export async function getPendingReviews(userId) {
   }));
 }
 
-export async function completeReview(scheduledReviewId, reviewData, userId) {
+export async function completeReview(
+  scheduledReviewId,
+  reviewData,
+  userId,
+  timezone = "America/Bogota"
+) {
   const { difficultyRating } = reviewData;
 
   try {
@@ -67,17 +74,18 @@ export async function completeReview(scheduledReviewId, reviewData, userId) {
         throw new Error("Scheduled review not found or already completed");
       }
 
-
       // Delete existing Google Calendar event if any
 
       if (scheduledReview.googleEventId) {
-      try {
-        await deleteCalendarEvent(userId, scheduledReview.googleEventId);
-        console.log(`Evento actual eliminado de Calendar: ${scheduledReview.googleEventId}`);
-      } catch (calendarError) {
-        console.log("Error eliminando evento actual:", calendarError.message);
+        try {
+          await deleteCalendarEvent(userId, scheduledReview.googleEventId);
+          console.log(
+            `Evento actual eliminado de Calendar: ${scheduledReview.googleEventId}`
+          );
+        } catch (calendarError) {
+          console.log("Error eliminando evento actual:", calendarError.message);
+        }
       }
-    }
 
       const completedReview = await tx.completedReview.create({
         data: {
@@ -95,8 +103,7 @@ export async function completeReview(scheduledReviewId, reviewData, userId) {
         scheduledReview.card.completedReviews.length + 1
       );
 
-      const nextStudyDate = new Date();
-      nextStudyDate.setDate(nextStudyDate.getDate() + nextInterval);
+      const nextStudyDate = calculateNextStudyDate(nextInterval, timezone);
 
       const nextReview = await tx.scheduledReview.create({
         data: {
@@ -117,9 +124,11 @@ export async function completeReview(scheduledReviewId, reviewData, userId) {
     try {
       await createStudySessionEvent(userId, {
         ...result.nextReview,
-        card: result.cardData
+        card: result.cardData,
       });
-      console.log(`Próximo evento creado en Calendar para ${result.nextInterval} días`);
+      console.log(
+        `Próximo evento creado en Calendar para ${result.nextInterval} días`
+      );
     } catch (calendarError) {
       console.log("Error creando próximo evento:", calendarError.message);
     }
@@ -128,6 +137,24 @@ export async function completeReview(scheduledReviewId, reviewData, userId) {
   } catch (error) {
     throw new Error("Error completing review: " + error.message);
   }
+}
+
+//calculate next study date at 9 AM in user's timezone
+function calculateNextStudyDate(intervalDays, timezone = "America/Bogota") {
+  const today = new Date();
+  today.setDate(today.getDate() + intervalDays);
+
+  const targetDateStr = today.toLocaleDateString("en-CA", {
+    timeZone: timezone,
+  });
+
+  const dateAt9AM = new Date(`${targetDateStr}T09:00:00`);
+
+  // Convert to UTC date to store in DB
+  const utcDate = new Date(
+    dateAt9AM.toLocaleString("en-US", { timeZone: timezone })
+  );
+  return utcDate;
 }
 
 //algorithm to calculate next interval based on difficulty and previous interval
@@ -273,6 +300,18 @@ export async function rescheduleReview(scheduledReviewId, newDate, userId) {
     }
   }
 
+  const rescheduledDate = new Date(newDate);
+
+  if (isNaN(rescheduledDate.getTime())) {
+    throw new Error("Invalid date format for rescheduling");
+  }
+
+  console.log("   Nueva fecha UTC:", rescheduledDate.toISOString());
+  console.log(
+    "   Nueva fecha local:",
+    rescheduledDate.toLocaleString("es-ES", { timeZone: timezone })
+  );
+
   const updatedReview = await prisma.scheduledReview.update({
     where: { id: scheduledReviewId },
     data: { dueDate: newDate },
@@ -298,7 +337,6 @@ export async function rescheduleReview(scheduledReviewId, newDate, userId) {
   } catch (calendarError) {
     console.log("Error creando nuevo evento:", calendarError.message);
   }
-
 
   return updatedReview;
 }
