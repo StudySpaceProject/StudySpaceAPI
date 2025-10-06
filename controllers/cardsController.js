@@ -2,7 +2,7 @@ import * as cardService from "./../services/cardService.js";
 
 export async function createCard(req, res, next) {
   try {
-    const { topicId: topicIdStr, question, answer } = req.body;
+    const { topicId: topicIdStr, question, answer, timeZone } = req.body;
     const topicId = parseInt(topicIdStr);
     const userId = req.apiUserId;
 
@@ -25,7 +25,9 @@ export async function createCard(req, res, next) {
       {
         question,
         answer,
+        timeZone,
       },
+
       userId
     );
 

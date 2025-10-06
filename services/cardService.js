@@ -1,8 +1,11 @@
 import prisma from "../lib/prisma.js";
-import { createStudySessionEvent, deleteCalendarEvent } from "../controllers/calendarController.js";
+import {
+  createStudySessionEvent,
+  deleteCalendarEvent,
+} from "../controllers/calendarController.js";
 
-export async function createCard(topicId, cardData, userId) {
-  const { question, answer } = cardData;
+export async function screateCard(topicId, cardData, userId) {
+  const { question, answer, timeZone } = cardData;
 
   const topic = await prisma.studyTopic.findFirst({
     where: { id: topicId, userId },
@@ -32,11 +35,29 @@ export async function createCard(topicId, cardData, userId) {
 
     // Schedule first review for the next day at 9 AM
 
+    const userTimeZone = timeZone || "America/Bogota";
+
     const tomorrowDate = new Date();
     tomorrowDate.setDate(tomorrowDate.getDate() + 1);
-    tomorrowDate.setHours(9, 0, 0, 0);
-    
 
+    //use toLocaleString to get date in user timezone
+    const tomorrowStr = tomorrowDate.toLocaleString("en-CA", {
+      timeZone: userTimeZone,
+    });
+
+    //build complete date
+    const tomorrowAt9AM = new Date(tomorrowStr + "T09:00:00");
+
+    //convert to UTC to store in DB
+    const utcDate = new Date(
+      tomorrowAt9AM.toLocaleString("en-US", { timeZone: userTimeZone })
+    );
+    console.log("   Zona horaria usuario:", userTimeZone);
+    console.log(
+      "   Fecha local (9 AM):",
+      tomorrowAt9AM.toLocaleString("es-ES", { timeZone: userTimeZone })
+    );
+    console.log("   Fecha UTC guardada:", utcDate.toISOString());
 
     const scheduledReview = await prisma.scheduledReview.create({
       data: {
@@ -48,10 +69,9 @@ export async function createCard(topicId, cardData, userId) {
     });
 
     try {
-
       const eventResult = await createStudySessionEvent(userId, {
         ...scheduledReview,
-        card: { ...card, topic }
+        card: { ...card, topic },
       });
       console.log(`RESULTADO del evento:`, eventResult ? "ÉXITO" : "NULL");
       console.log(`Evento creado en Calendar para card ${card.id}`);
@@ -209,11 +229,11 @@ export async function updateCard(cardId, updatedInfo, userId) {
         where: {
           cardId,
           completedReviews: { none: {} },
-          googleEventId: { not: null }
+          googleEventId: { not: null },
         },
         include: {
-          card: { include: { topic: true } }
-        }
+          card: { include: { topic: true } },
+        },
       });
 
       // Recreate events
@@ -221,12 +241,15 @@ export async function updateCard(cardId, updatedInfo, userId) {
         await deleteCalendarEvent(userId, review.googleEventId);
         await createStudySessionEvent(userId, {
           ...review,
-          card: { ...updatedCard, topic: updatedCard.topic }
+          card: { ...updatedCard, topic: updatedCard.topic },
         });
       }
       console.log(`${pendingReviews.length} eventos actualizados en Calendar`);
     } catch (calendarError) {
-      console.log("Error actualizando eventos de Calendar:", calendarError.message);
+      console.log(
+        "Error actualizando eventos de Calendar:",
+        calendarError.message
+      );
     }
   }
 
@@ -251,8 +274,8 @@ export async function deleteCard(cardId, userId) {
       where: {
         cardId,
         completedReviews: { none: {} },
-        googleEventId: { not: null }
-      }
+        googleEventId: { not: null },
+      },
     });
 
     for (const review of pendingReviews) {
