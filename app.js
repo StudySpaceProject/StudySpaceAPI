@@ -18,6 +18,7 @@ const allowedOrigins = [
   "http://localhost:3000", // Express default
   "http://localhost:5173", // Vite
   "https://studyspaceapi-production.up.railway.app",
+  process.env.FRONTEND_URL || "http://localhost:1234",
 ];
 
 app.use(
