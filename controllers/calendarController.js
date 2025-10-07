@@ -1,5 +1,6 @@
 import { google } from "googleapis";
 import prisma from "../lib/prisma.js";
+import { use } from "react";
 
 const clientId = process.env.GOOGLE_CLIENT_ID;
 const clientSecret = process.env.GOOGLE_CLIENT_SECRET;
@@ -121,6 +122,8 @@ async function createStudySessionEvent(userId, scheduledReview) {
       select: { googleAccessToken: true, googleRefreshToken: true, timezone },
     });
 
+    const userTimezone = user?.timezone || "America/Bogota";
+
     console.log(`Usuario:`, {
       hasAccessToken: !!user?.googleAccessToken,
       hasRefreshToken: !!user?.googleRefreshToken,
@@ -152,12 +155,12 @@ async function createStudySessionEvent(userId, scheduledReview) {
         `Creado por StudySpace`,
       start: {
         dateTime: startTime.toISOString(),
-        timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+        timeZone: userTimezone,
         // timeZone: "America/Bogota", //fixed the static timezone to avoid issues
       },
       end: {
         dateTime: endTime.toISOString(),
-        timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+        timeZone: userTimezone,
         // timeZone: "America/Bogota", //fixed the static timezone to avoid issues
       },
       colorId: "4", // Azul
@@ -169,6 +172,12 @@ async function createStudySessionEvent(userId, scheduledReview) {
         ],
       },
     };
+
+    console.log(`Creando evento en Calendar:`, {
+      summary: eventObj.summary,
+      startTime: startTime.toISOString(),
+      timezone: userTimezone,
+    });
 
     // Crear evento
     const event = await createCalendarEvent(userId, eventObj);
@@ -182,8 +191,11 @@ async function createStudySessionEvent(userId, scheduledReview) {
 
     return event;
   } catch (error) {
-    // console.log("Error creando evento de estudio:", error.message);
-    console.log(`ERROR en createStudySessionEvent:`, error.message);
+    console.log(`ERROR en createStudySessionEvent:`, {
+      message: error.message,
+      stack: error.stack,
+      errorName: error.name,
+    });
     return null;
   }
 }
