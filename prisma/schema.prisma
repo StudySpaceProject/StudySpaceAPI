@@ -13,6 +13,7 @@ model User {
   passwordHash      String   @map("password_hash")
   googleAccessToken String?  @map("google_access_token")
   googleRefreshToken String? @map("google_refresh_token")
+  timezone          String   @default("America/Bogota")
   createdAt         DateTime @default(now()) @map("created_at")
 
   // Relaciones

@@ -7,7 +7,7 @@ import {
 
 export async function register(req, res, next) {
   try {
-    const { email, password } = req.body;
+    const { email, password, timezone } = req.body;
 
     if (!email || !password) {
       const error = new Error("Email and password are required");
@@ -21,7 +21,9 @@ export async function register(req, res, next) {
       return next(error);
     }
 
-    const user = await userService.createUser(email, password);
+    const validTimezone = timezone || "America/Bogota";
+
+    const user = await userService.createUser(email, password, validTimezone);
 
     try {
       const token = generateToken(user);
@@ -81,7 +83,7 @@ export async function login(req, res, next) {
 
     res.json({
       message: "Login successful",
-      user: { id: user.id, email: user.email },
+      user: { id: user.id, email: user.email, timezone: user.timezone },
       token,
     });
   } catch (error) {

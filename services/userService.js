@@ -1,13 +1,14 @@
 import prisma from "../lib/prisma.js";
 import bcrypt from "bcrypt";
 
-export async function createUser(email, password) {
+export async function createUser(email, password, timezone) {
   try {
     const passwordHash = await bcrypt.hash(password, 9);
     const user = await prisma.user.create({
       data: {
         email,
         passwordHash,
+        timezone,
       },
       select: {
         id: true,
@@ -28,6 +29,7 @@ export async function getUserById(userId) {
     select: {
       id: true,
       email: true,
+      timezone: true,
       createdAt: true,
       studyTopics: {
         select: {
@@ -58,6 +60,7 @@ export async function getUserByEmail(email) {
       id: true,
       email: true,
       passwordHash: true,
+      timezone: true,
     },
   });
   return user;
@@ -141,6 +144,7 @@ export async function getUserDashboard(userId) {
     user: {
       id: user.id,
       email: user.email,
+      timezone: user.timezone,
       createdAt: user.createdAt,
     },
     stats: {
