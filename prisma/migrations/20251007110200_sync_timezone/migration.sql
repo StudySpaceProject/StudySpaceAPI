@@ -1,0 +1,3 @@
+-- Migración de sincronización
+-- La columna timezone ya existe en la base de datos
+-- No se requieren cambios

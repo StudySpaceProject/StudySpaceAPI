@@ -104,37 +104,32 @@ async function deleteCalendarEvent(userId, eventId, calendarId = "primary") {
 
 async function createStudySessionEvent(userId, scheduledReview) {
   try {
+    console.log(`INICIANDO createStudySessionEvent para usuario ${userId}`);
 
-    console.log(`INICIANDO createStudySessionEvent para usuario ${userId}`)
+    if (!scheduledReview.card) {
+      console.log(`scheduledReview sin propiedad card`);
+      return null;
+    }
+
+    if (!scheduledReview.card.topic) {
+      console.error(`❌ scheduledReview.card sin propiedad 'topic'`);
+      return null;
+    }
     // Verificar si tiene tokens
     const user = await prisma.user.findUnique({
       where: { id: Number(userId) },
-      select: { googleAccessToken: true, googleRefreshToken: true },
+      select: { googleAccessToken: true, googleRefreshToken: true, timezone },
     });
 
-    console.log(`USUARIO encontrado:`, {
+    console.log(`Usuario:`, {
       hasAccessToken: !!user?.googleAccessToken,
-      hasRefreshToken: !!user?.googleRefreshToken
+      hasRefreshToken: !!user?.googleRefreshToken,
     });
-
 
     if (!user?.googleRefreshToken) {
       console.log(`Usuario no tiene refreshToken - retornando null `);
       return null; // Usuario no tiene Calendar conectado
     }
-
-    // Obtener datos de la sesión si no vienen incluidos
-    let reviewData = scheduledReview;
-    if (!scheduledReview.card) {
-      reviewData = await prisma.scheduledReview.findUnique({
-        where: { id: scheduledReview.id },
-        include: {
-          card: { include: { topic: true } },
-        },
-      });
-    }
-
-    if (!reviewData) return null;
 
     // Crear objeto del evento
     const startTime = new Date(reviewData.dueDate);
@@ -157,12 +152,12 @@ async function createStudySessionEvent(userId, scheduledReview) {
         `Creado por StudySpace`,
       start: {
         dateTime: startTime.toISOString(),
-        timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone
+        timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
         // timeZone: "America/Bogota", //fixed the static timezone to avoid issues
       },
       end: {
         dateTime: endTime.toISOString(),
-        timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone  
+        timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
         // timeZone: "America/Bogota", //fixed the static timezone to avoid issues
       },
       colorId: "4", // Azul
@@ -177,8 +172,8 @@ async function createStudySessionEvent(userId, scheduledReview) {
 
     // Crear evento
     const event = await createCalendarEvent(userId, eventObj);
+    console.log(`Evento de estudio creado en Calendar: ${event.id}`);
 
-    
     // Guardar ID del evento
     await prisma.scheduledReview.update({
       where: { id: reviewData.id },

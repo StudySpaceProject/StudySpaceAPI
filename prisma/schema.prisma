@@ -8,82 +8,72 @@ datasource db {
 }
 
 model User {
-  id                Int      @id @default(autoincrement())
-  email             String   @unique
-  passwordHash      String   @map("password_hash")
-  googleAccessToken String?  @map("google_access_token")
-  googleRefreshToken String? @map("google_refresh_token")
-  timezone          String   @default("America/Bogota")
-  createdAt         DateTime @default(now()) @map("created_at")
-
-  // Relaciones
-  studyTopics       StudyTopic[]
-  scheduledReviews  ScheduledReview[]
-  completedReviews  CompletedReview[]
+  id                 Int               @id @default(autoincrement())
+  email              String            @unique
+  passwordHash       String            @map("password_hash")
+  googleAccessToken  String?           @map("google_access_token")
+  googleRefreshToken String?           @map("google_refresh_token")
+  createdAt          DateTime          @default(now()) @map("created_at")
+  timezone           String?           @default("America/Bogota")
+  completedReviews   CompletedReview[]
+  scheduledReviews   ScheduledReview[]
+  studyTopics        StudyTopic[]
 
   @@map("users")
 }
 
 model StudyTopic {
-  id          Int      @id @default(autoincrement())
-  userId      Int      @map("user_id")
+  id          Int         @id @default(autoincrement())
+  userId      Int         @map("user_id")
   name        String
   description String?
-  color       String   @default("#3B82F6")
-  createdAt   DateTime @default(now()) @map("created_at")
-
-  // Relaciones
-  user        User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  color       String      @default("#3B82F6")
+  createdAt   DateTime    @default(now()) @map("created_at")
   studyCards  StudyCard[]
+  user        User        @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("study_topics")
 }
 
 model StudyCard {
-  id        Int      @id @default(autoincrement())
-  topicId   Int      @map("topic_id")
-  question  String
-  answer    String
-  createdAt DateTime @default(now()) @map("created_at")
-
-  // Relaciones
-  topic            StudyTopic @relation(fields: [topicId], references: [id], onDelete: Cascade)
-  scheduledReviews ScheduledReview[]
+  id               Int               @id @default(autoincrement())
+  topicId          Int               @map("topic_id")
+  question         String
+  answer           String
+  createdAt        DateTime          @default(now()) @map("created_at")
   completedReviews CompletedReview[]
+  scheduledReviews ScheduledReview[]
+  topic            StudyTopic        @relation(fields: [topicId], references: [id], onDelete: Cascade)
 
   @@map("study_cards")
 }
 
 model ScheduledReview {
-  id            Int       @id @default(autoincrement())
-  cardId        Int       @map("card_id")
-  userId        Int       @map("user_id")
-  dueDate       DateTime  @map("due_date")
-  intervalDays  Int       @map("interval_days")
-  googleEventId String?   @map("google_event_id")
-  createdAt     DateTime  @default(now()) @map("created_at")
-
-  // Relaciones
-  card             StudyCard @relation(fields: [cardId], references: [id], onDelete: Cascade)
-  user             User @relation(fields: [userId], references: [id], onDelete: Cascade)
-  completedReviews CompletedReview[]
+  id               Int              @id @default(autoincrement())
+  cardId           Int              @map("card_id")
+  userId           Int              @map("user_id")
+  dueDate          DateTime         @map("due_date")
+  intervalDays     Int              @map("interval_days")
+  googleEventId    String?          @map("google_event_id")
+  createdAt        DateTime         @default(now()) @map("created_at")
+  completedReviews CompletedReview?
+  card             StudyCard        @relation(fields: [cardId], references: [id], onDelete: Cascade)
+  user             User             @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("scheduled_reviews")
 }
 
 model CompletedReview {
-  id                  Int      @id @default(autoincrement())
-  scheduledReviewId   Int      @unique @map("scheduled_review_id")
-  cardId              Int      @map("card_id")
-  userId              Int      @map("user_id")
-  completedAt         DateTime @map("completed_at")
-  difficultyRating    Int      @map("difficulty_rating")
-  createdAt           DateTime @default(now()) @map("created_at")
-
-  // Relaciones
-  scheduledReview ScheduledReview @relation(fields: [scheduledReviewId], references: [id], onDelete: Cascade)
-  card           StudyCard       @relation(fields: [cardId], references: [id], onDelete: Cascade)
-  user           User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id                Int             @id @default(autoincrement())
+  scheduledReviewId Int             @unique @map("scheduled_review_id")
+  cardId            Int             @map("card_id")
+  userId            Int             @map("user_id")
+  completedAt       DateTime        @map("completed_at")
+  difficultyRating  Int             @map("difficulty_rating")
+  createdAt         DateTime        @default(now()) @map("created_at")
+  card              StudyCard       @relation(fields: [cardId], references: [id], onDelete: Cascade)
+  scheduledReview   ScheduledReview @relation(fields: [scheduledReviewId], references: [id], onDelete: Cascade)
+  user              User            @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("completed_reviews")
 }

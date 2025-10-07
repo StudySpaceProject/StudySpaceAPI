@@ -1,5 +1,8 @@
 import prisma from "../lib/prisma.js";
-import { createStudySessionEvent, deleteCalendarEvent } from "../controllers/calendarController.js";
+import {
+  createStudySessionEvent,
+  deleteCalendarEvent,
+} from "../controllers/calendarController.js";
 
 export async function getPendingReviews(userId) {
   const now = new Date();
@@ -26,7 +29,6 @@ export async function getPendingReviews(userId) {
     orderBy: { dueDate: "asc" },
   });
 
-
   return pendingReviews.map((review) => ({
     id: review.id,
     dueDate: review.dueDate,
@@ -43,6 +45,13 @@ export async function getPendingReviews(userId) {
 export async function completeReview(scheduledReviewId, reviewData, userId) {
   const { difficultyRating } = reviewData;
 
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { timezone: true },
+  });
+
+  const userTimezone = user?.timezone || "America/Bogota";
+
   try {
     const result = await prisma.$transaction(async (tx) => {
       const scheduledReview = await tx.scheduledReview.findFirst({
@@ -58,6 +67,7 @@ export async function completeReview(scheduledReviewId, reviewData, userId) {
                 orderBy: { completedAt: "desc" },
                 take: 1,
               },
+              topic: true,
             },
           },
         },
@@ -67,17 +77,18 @@ export async function completeReview(scheduledReviewId, reviewData, userId) {
         throw new Error("Scheduled review not found or already completed");
       }
 
-
       // Delete existing Google Calendar event if any
 
       if (scheduledReview.googleEventId) {
-      try {
-        await deleteCalendarEvent(userId, scheduledReview.googleEventId);
-        console.log(`Evento actual eliminado de Calendar: ${scheduledReview.googleEventId}`);
-      } catch (calendarError) {
-        console.log("Error eliminando evento actual:", calendarError.message);
+        try {
+          await deleteCalendarEvent(userId, scheduledReview.googleEventId);
+          console.log(
+            `Evento actual eliminado de Calendar: ${scheduledReview.googleEventId}`
+          );
+        } catch (calendarError) {
+          console.log("Error eliminando evento actual:", calendarError.message);
+        }
       }
-    }
 
       const completedReview = await tx.completedReview.create({
         data: {
@@ -95,8 +106,18 @@ export async function completeReview(scheduledReviewId, reviewData, userId) {
         scheduledReview.card.completedReviews.length + 1
       );
 
-      const nextStudyDate = new Date();
-      nextStudyDate.setDate(nextStudyDate.getDate() + nextInterval);
+      const nextStudyDate = createDateInTimezone(
+        userTimezone,
+        nextInterval,
+        9,
+        0
+      );
+
+      console.log(`Próxima revisión programada:`, {
+        utc: nextStudyDate.toISOString(),
+        timezone: userTimezone,
+        intervalDays: nextInterval,
+      });
 
       const nextReview = await tx.scheduledReview.create({
         data: {
@@ -111,17 +132,28 @@ export async function completeReview(scheduledReviewId, reviewData, userId) {
         completedReview,
         nextReview,
         nextInterval,
+        cardData: scheduledReview.card,
       };
     });
 
     try {
-      await createStudySessionEvent(userId, {
-        ...result.nextReview,
-        card: result.cardData
+      const fullNextReview = await prisma.scheduledReview.findUnique({
+        where: { id: result.nextReview.id },
+        include: {
+          card: {
+            include: {
+              topic: true,
+            },
+          },
+        },
       });
-      console.log(`Próximo evento creado en Calendar para ${result.nextInterval} días`);
+
+      if (fullNextReview) {
+        await createStudySessionEvent(userId, fullNextReview);
+        console.log(`Próximo evento creado en Calendar`);
+      }
     } catch (calendarError) {
-      console.log("Error creando próximo evento:", calendarError.message);
+      console.log("rror creando próximo evento:", calendarError.message);
     }
 
     return result;
@@ -251,6 +283,13 @@ export async function getCardReviewHistory(cardId, userId) {
 }
 
 export async function rescheduleReview(scheduledReviewId, newDate, userId) {
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { timezone: true },
+  });
+
+  const userTimezone = user?.timezone || "America/Bogota";
+
   const review = await prisma.scheduledReview.findFirst({
     where: {
       id: scheduledReviewId,
@@ -298,7 +337,6 @@ export async function rescheduleReview(scheduledReviewId, newDate, userId) {
   } catch (calendarError) {
     console.log("Error creando nuevo evento:", calendarError.message);
   }
-
 
   return updatedReview;
 }
