@@ -1,5 +1,9 @@
 import prisma from "../lib/prisma.js";
-import { createStudySessionEvent, deleteCalendarEvent } from "../controllers/calendarController.js";
+import {
+  createStudySessionEvent,
+  deleteCalendarEvent,
+} from "../controllers/calendarController.js";
+import { createDateInTimezone } from "../lib/timeZoneUtils.js";
 
 export async function createCard(topicId, cardData, userId) {
   const { question, answer } = cardData;
@@ -11,6 +15,14 @@ export async function createCard(topicId, cardData, userId) {
   if (!topic) {
     throw new Error("Topic not found or unauthorized access");
   }
+
+  //get user timezone
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { timezone: true },
+  });
+
+  const userTimezone = user?.timezone || "America/Bogota";
 
   try {
     const card = await prisma.studyCard.create({
@@ -32,28 +44,23 @@ export async function createCard(topicId, cardData, userId) {
 
     // Schedule first review for the next day at 9 AM
 
-    const tomorrowDate = new Date();
-    tomorrowDate.setDate(tomorrowDate.getDate() + 1);
-    tomorrowDate.setHours(9, 0, 0, 0);
-    
-
+    const tomorrowDate9AM = createDateInTimezone(userTimezone, 1, 9, 0);
 
     const scheduledReview = await prisma.scheduledReview.create({
       data: {
         cardId: card.id,
         userId,
-        dueDate: tomorrowDate,
+        dueDate: tomorrowDate9AM,
         intervalDays: 1,
       },
     });
 
     try {
-
       const eventResult = await createStudySessionEvent(userId, {
         ...scheduledReview,
-        card: { ...card, topic }
+        card: { ...card, topic },
       });
-      console.log(`RESULTADO del evento:`, eventResult ? "ÉXITO" : "NULL");
+      console.log(`Resultado del evento:`, eventResult ? "ÉXITO" : "NULL");
       console.log(`Evento creado en Calendar para card ${card.id}`);
     } catch (error) {
       console.log(`ERROR creando evento para card ${card.id}:`, error.message);
@@ -66,6 +73,7 @@ export async function createCard(topicId, cardData, userId) {
 }
 
 export async function getTopicCards(topicId, userId) {
+  //can use to display stats too
   const topic = await prisma.studyTopic.findFirst({
     where: { id: topicId, userId },
   });
@@ -209,11 +217,11 @@ export async function updateCard(cardId, updatedInfo, userId) {
         where: {
           cardId,
           completedReviews: { none: {} },
-          googleEventId: { not: null }
+          googleEventId: { not: null },
         },
         include: {
-          card: { include: { topic: true } }
-        }
+          card: { include: { topic: true } },
+        },
       });
 
       // Recreate events
@@ -221,12 +229,15 @@ export async function updateCard(cardId, updatedInfo, userId) {
         await deleteCalendarEvent(userId, review.googleEventId);
         await createStudySessionEvent(userId, {
           ...review,
-          card: { ...updatedCard, topic: updatedCard.topic }
+          card: { ...updatedCard, topic: updatedCard.topic },
         });
       }
       console.log(`${pendingReviews.length} eventos actualizados en Calendar`);
     } catch (calendarError) {
-      console.log("Error actualizando eventos de Calendar:", calendarError.message);
+      console.log(
+        "Error actualizando eventos de Calendar:",
+        calendarError.message
+      );
     }
   }
 
@@ -251,8 +262,8 @@ export async function deleteCard(cardId, userId) {
       where: {
         cardId,
         completedReviews: { none: {} },
-        googleEventId: { not: null }
-      }
+        googleEventId: { not: null },
+      },
     });
 
     for (const review of pendingReviews) {

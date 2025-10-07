@@ -104,19 +104,23 @@ async function deleteCalendarEvent(userId, eventId, calendarId = "primary") {
 
 async function createStudySessionEvent(userId, scheduledReview) {
   try {
-
-    console.log(`INICIANDO createStudySessionEvent para usuario ${userId}`)
+    console.log(`INICIANDO createStudySessionEvent para usuario ${userId}`);
     // Verificar si tiene tokens
     const user = await prisma.user.findUnique({
       where: { id: Number(userId) },
-      select: { googleAccessToken: true, googleRefreshToken: true },
+      select: {
+        googleAccessToken: true,
+        googleRefreshToken: true,
+        timezone: true,
+      },
     });
+
+    const userTimezone = user?.timezone || "America/Bogota";
 
     console.log(`USUARIO encontrado:`, {
       hasAccessToken: !!user?.googleAccessToken,
-      hasRefreshToken: !!user?.googleRefreshToken
+      hasRefreshToken: !!user?.googleRefreshToken,
     });
-
 
     if (!user?.googleRefreshToken) {
       console.log(`Usuario no tiene refreshToken - retornando null `);
@@ -157,12 +161,12 @@ async function createStudySessionEvent(userId, scheduledReview) {
         `Creado por StudySpace`,
       start: {
         dateTime: startTime.toISOString(),
-        timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone
+        timeZone: userTimezone,
         // timeZone: "America/Bogota", //fixed the static timezone to avoid issues
       },
       end: {
         dateTime: endTime.toISOString(),
-        timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone  
+        timeZone: userTimezone,
         // timeZone: "America/Bogota", //fixed the static timezone to avoid issues
       },
       colorId: "4", // Azul
@@ -178,7 +182,6 @@ async function createStudySessionEvent(userId, scheduledReview) {
     // Crear evento
     const event = await createCalendarEvent(userId, eventObj);
 
-    
     // Guardar ID del evento
     await prisma.scheduledReview.update({
       where: { id: reviewData.id },

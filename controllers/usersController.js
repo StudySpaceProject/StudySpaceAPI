@@ -22,6 +22,11 @@ export async function register(req, res, next) {
     }
 
     const validTimezone = timezone || "America/Bogota";
+    if (!isValidTimezone(validTimezone)) {
+      const error = new Error("Invalid timezone format");
+      error.status = 400;
+      return next(error);
+    }
 
     const user = await userService.createUser(email, password, validTimezone);
 
@@ -85,6 +90,7 @@ export async function login(req, res, next) {
       message: "Login successful",
       user: { id: user.id, email: user.email, timezone: user.timezone },
       token,
+      timezone: user.timezone,
     });
   } catch (error) {
     next(error);
