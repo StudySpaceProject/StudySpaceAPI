@@ -13,6 +13,10 @@ model User {
   passwordHash      String   @map("password_hash")
   googleAccessToken String?  @map("google_access_token")
   googleRefreshToken String? @map("google_refresh_token")
+  currentStreak   Int      @default(0) @map("current_streak")
+  longestStreak    Int      @default(0) @map("longest_streak")
+  lastCompletionDate DateTime? @map("last_completion_date")
+  lastReviewDate   DateTime? @map("last_review_date")
   createdAt         DateTime @default(now()) @map("created_at")
 
   // Relaciones
