@@ -178,10 +178,10 @@ export async function getUserStreakStats(userId) {
   const canExtendStreak = todayPending === 0 && !completedToday && !wasReset;
 
   return {
-    currentStreak: streakStatus.currentStreak,
+    currentStreak,
     longestStreak: user.longestStreak,
     lastCompletionDate: user.lastCompletionDate,
-    isActiveToday: streakStatus.isActive,
+    isActiveToday: completedToday,
     pendingToday: todayPending,
     canExtendStreak,
     wasAutoReset: wasReset,
