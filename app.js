@@ -18,9 +18,7 @@ const allowedOrigins = [
   "http://localhost:1234", // Parcel default
   "http://localhost:3000", // Express default
   "http://localhost:5173", // Vite
-  "studyspaceapi-test-enviroment.up.railway.app",
-  // "https://studyspaceapi-production.up.railway.app",
-
+  "https://studyspaceapi-production.up.railway.app",
   process.env.FRONTEND_URL || "http://localhost:1234",
 ];
 
