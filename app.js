@@ -4,6 +4,7 @@ import cors from "cors";
 import path from "path";
 import morgan from "morgan";
 import cookieParser from "cookie-parser";
+import * as streakController from "./controllers/streakController.js";
 import * as usersController from "./controllers/usersController.js";
 import * as topicsController from "./controllers/topicsController.js";
 import * as cardsController from "./controllers/cardsController.js";
@@ -17,7 +18,9 @@ const allowedOrigins = [
   "http://localhost:1234", // Parcel default
   "http://localhost:3000", // Express default
   "http://localhost:5173", // Vite
-  "https://studyspaceapi-production.up.railway.app",
+  "studyspaceapi-test-enviroment.up.railway.app",
+  // "https://studyspaceapi-production.up.railway.app",
+
   process.env.FRONTEND_URL || "http://localhost:1234",
 ];
 
@@ -89,6 +92,10 @@ app.put(
   guard,
   reviewsController.rescheduleReview
 );
+
+// STREAK ROUTES
+app.get("/api/streak/status", guard, streakController.getStreakStatus);
+app.post("/api/streak/check", guard, streakController.checkStreak);
 
 //HEALTH CHECK
 app.get("/", (req, res) => {

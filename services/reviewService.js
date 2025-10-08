@@ -1,5 +1,9 @@
 import prisma from "../lib/prisma.js";
-import { createStudySessionEvent, deleteCalendarEvent } from "../controllers/calendarController.js";
+import {
+  createStudySessionEvent,
+  deleteCalendarEvent,
+} from "../controllers/calendarController.js";
+import { updateUserStreak } from "./streakService.js";
 
 export async function getPendingReviews(userId) {
   const now = new Date();
@@ -25,7 +29,6 @@ export async function getPendingReviews(userId) {
     },
     orderBy: { dueDate: "asc" },
   });
-
 
   return pendingReviews.map((review) => ({
     id: review.id,
@@ -67,17 +70,18 @@ export async function completeReview(scheduledReviewId, reviewData, userId) {
         throw new Error("Scheduled review not found or already completed");
       }
 
-
       // Delete existing Google Calendar event if any
 
       if (scheduledReview.googleEventId) {
-      try {
-        await deleteCalendarEvent(userId, scheduledReview.googleEventId);
-        console.log(`Evento actual eliminado de Calendar: ${scheduledReview.googleEventId}`);
-      } catch (calendarError) {
-        console.log("Error eliminando evento actual:", calendarError.message);
+        try {
+          await deleteCalendarEvent(userId, scheduledReview.googleEventId);
+          console.log(
+            `Evento actual eliminado de Calendar: ${scheduledReview.googleEventId}`
+          );
+        } catch (calendarError) {
+          console.log("Error eliminando evento actual:", calendarError.message);
+        }
       }
-    }
 
       const completedReview = await tx.completedReview.create({
         data: {
@@ -107,6 +111,13 @@ export async function completeReview(scheduledReviewId, reviewData, userId) {
         },
       });
 
+      try {
+        const streakUpdate = await updateUserStreak(userId);
+        console.log(`Racha actualizada:`, streakUpdate);
+      } catch (error) {
+        console.log("Error actualizando racha:", error.message);
+      }
+
       return {
         completedReview,
         nextReview,
@@ -117,9 +128,11 @@ export async function completeReview(scheduledReviewId, reviewData, userId) {
     try {
       await createStudySessionEvent(userId, {
         ...result.nextReview,
-        card: result.cardData
+        card: result.cardData,
       });
-      console.log(`Próximo evento creado en Calendar para ${result.nextInterval} días`);
+      console.log(
+        `Próximo evento creado en Calendar para ${result.nextInterval} días`
+      );
     } catch (calendarError) {
       console.log("Error creando próximo evento:", calendarError.message);
     }
@@ -298,7 +311,6 @@ export async function rescheduleReview(scheduledReviewId, newDate, userId) {
   } catch (calendarError) {
     console.log("Error creando nuevo evento:", calendarError.message);
   }
-
 
   return updatedReview;
 }

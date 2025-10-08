@@ -1,5 +1,6 @@
 import prisma from "../lib/prisma.js";
 import bcrypt from "bcrypt";
+import { getUserStreakStats } from "./streakService.js";
 
 export async function createUser(email, password) {
   try {
@@ -137,6 +138,8 @@ export async function getUserDashboard(userId) {
     },
   }));
 
+  const streakStats = await getUserStreakStats(userId);
+
   return {
     user: {
       id: user.id,
@@ -148,6 +151,8 @@ export async function getUserDashboard(userId) {
       totalCards: totalCards,
       pendingReviews: user.scheduledReviews.length,
       completedToday: user.completedReviews.length,
+      currentStreak: streakStats.currentStreak,
+      longestStreak: streakStats.longestStreak,
     },
     pendingReviews: pendingReviews,
     recentActivity: user.completedReviews,
