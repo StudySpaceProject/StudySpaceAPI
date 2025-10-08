@@ -124,7 +124,7 @@ export async function getUserDashboard(userId) {
     throw new Error("User not found");
   }
   //get streak stats
-  const streakStats = await getUserStreakStats(userId);
+  // const streakStats = await getUserStreakStats(userId);
 
   const totalCards = user.studyTopics.reduce(
     (acc, topic) => acc + topic.studyCards.length,
