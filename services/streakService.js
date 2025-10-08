@@ -3,8 +3,8 @@ import prisma from "../lib/prisma.js";
 //verify if two dates are consecutive days
 
 function areConsecutiveDays(date1, date2) {
-  const d1 = new Date(date1);
-  const d2 = new Date(date2);
+  let d1 = new Date(date1);
+  let d2 = new Date(date2);
 
   d1.setHours(0, 0, 0, 0);
   d2.setHours(0, 0, 0, 0);
@@ -115,57 +115,6 @@ export async function updateUserStreak(userId) {
   };
 }
 
-// Verify and update streak
-export async function checkAndUpdateStreak(userId) {
-  const user = await prisma.user.findUnique({
-    where: { id: userId },
-    select: {
-      currentStreak: true,
-      longestStreak: true,
-      lastCompletionDate: true,
-    },
-  });
-
-  if (!user.lastCompletionDate) {
-    return {
-      currentStreak: 0,
-      longestStreak: user.longestStreak,
-      isActive: false,
-    };
-  }
-
-  const today = new Date();
-  const lastCompletion = new Date(user.lastCompletionDate);
-
-  lastCompletion.setHours(0, 0, 0, 0);
-  today.setHours(0, 0, 0, 0);
-
-  const diffTime = today - lastCompletion;
-  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-
-  // If more than 1 day has passed since last completion, reset current streak
-  if (diffDays > 1) {
-    await prisma.user.update({
-      where: { id: userId },
-      data: { currentStreak: 0 },
-    });
-
-    return {
-      currentStreak: 0,
-      longestStreak: user.longestStreak,
-      isActive: false,
-      daysSinceLastCompletion: diffDays,
-    };
-  }
-
-  return {
-    currentStreak: user.currentStreak,
-    longestStreak: user.longestStreak,
-    isActive: diffDays === 0, // true if last completion was today
-    daysSinceLastCompletion: diffDays,
-  };
-}
-
 // Get user streak stats
 export async function getUserStreakStats(userId) {
   const user = await prisma.user.findUnique({
@@ -177,7 +126,27 @@ export async function getUserStreakStats(userId) {
     },
   });
 
-  const streakStatus = await checkAndUpdateStreak(userId);
+  if (!user) {
+    throw new Error("User not found");
+  }
+
+  let currentStreak = user.currentStreak;
+  let wasReset = false;
+
+  // Check if the streak should be reset
+  if (user.lastCompletionDate && currentStreak > 0) {
+    const daysSinceLastReview = daysSince(user.lastCompletionDate);
+
+    if (daysSinceLastReview > 1) {
+      await prisma.user.update({
+        where: { id: userId },
+        data: { currentStreak: 0 },
+      });
+      currentStreak = 0;
+      wasReset = true;
+      console.log("Racha reseteada por inactividad");
+    }
+  }
 
   // Verify if there are pending sessions for today
   const today = new Date();
@@ -200,12 +169,33 @@ export async function getUserStreakStats(userId) {
     },
   });
 
+  //verify if user has completed reviews today
+  const completedToday = user.lastCompletionDate
+    ? isToday(user.lastCompletionDate)
+    : false;
+
+  // can user extend streak today?
+  const canExtendStreak = todayPending === 0 && !completedToday && !wasReset;
+
   return {
     currentStreak: streakStatus.currentStreak,
     longestStreak: user.longestStreak,
     lastCompletionDate: user.lastCompletionDate,
     isActiveToday: streakStatus.isActive,
     pendingToday: todayPending,
-    canExtendStreak: todayPending === 0 && !streakStatus.isActive,
+    canExtendStreak,
+    wasAutoReset: wasReset,
   };
+}
+function daysSince(date) {
+  if (!date) return Infinity;
+  const today = new Date();
+  const pastDate = new Date(date);
+
+  today.setHours(0, 0, 0, 0);
+  pastDate.setHours(0, 0, 0, 0);
+
+  const diffTime = today - pastDate;
+  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+  return diffDays;
 }

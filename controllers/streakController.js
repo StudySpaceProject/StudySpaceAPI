@@ -1,6 +1,7 @@
 import * as streakService from "../services/streakService.js";
 
 // get current streak status
+//it verifies if the streak is still active or has been broken by inactivity
 
 export async function getStreakStatus(req, res, next) {
   try {
@@ -8,25 +9,15 @@ export async function getStreakStatus(req, res, next) {
 
     const streakStats = await streakService.getUserStreakStats(userId);
 
+    if (streakStats.wasAutoReset) {
+      return res.json({
+        message: "Racha reiniciada por inactividad",
+        streak: streakStats,
+      });
+    }
+
     res.json({
       streak: streakStats,
-    });
-  } catch (error) {
-    next(error);
-  }
-}
-
-// Check and update streak
-
-export async function checkStreak(req, res, next) {
-  try {
-    const userId = req.apiUserId;
-
-    const result = await streakService.checkAndUpdateStreak(userId);
-
-    res.json({
-      message: "Racha verificada",
-      streak: result,
     });
   } catch (error) {
     next(error);

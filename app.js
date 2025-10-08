@@ -93,7 +93,6 @@ app.put(
 
 // STREAK ROUTES
 app.get("/api/streak/status", guard, streakController.getStreakStatus);
-app.post("/api/streak/check", guard, streakController.checkStreak);
 
 //HEALTH CHECK
 app.get("/", (req, res) => {
