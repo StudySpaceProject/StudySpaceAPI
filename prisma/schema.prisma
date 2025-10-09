@@ -19,7 +19,7 @@ model User {
   lastReviewDate   DateTime? @map("last_review_date")
   createdAt         DateTime @default(now()) @map("created_at")
 
-  // Relaciones
+  // Relations
   studyTopics       StudyTopic[]
   scheduledReviews  ScheduledReview[]
   completedReviews  CompletedReview[]
@@ -35,10 +35,14 @@ model StudyTopic {
   color       String   @default("#3B82F6")
   createdAt   DateTime @default(now()) @map("created_at")
 
-  // Relaciones
+  // Relations
   user        User @relation(fields: [userId], references: [id], onDelete: Cascade)
   studyCards  StudyCard[]
 
+  //indexes
+  @@index([userId]) // for getUserTopics
+  @@index([userId, createdAt]) // for getUserTopics ordered by creation date
+  @@index([userId, name]) // for searching topics by name
   @@map("study_topics")
 }
 
@@ -49,10 +53,14 @@ model StudyCard {
   answer    String
   createdAt DateTime @default(now()) @map("created_at")
 
-  // Relaciones
+  // Relations
   topic            StudyTopic @relation(fields: [topicId], references: [id], onDelete: Cascade)
   scheduledReviews ScheduledReview[]
   completedReviews CompletedReview[]
+
+  //indexes
+  @@index([topicId]) // for getTopicCards
+  @@index([topicId, createdAt]) // for getTopicCards ordered by creation date
 
   @@map("study_cards")
 }
@@ -66,10 +74,15 @@ model ScheduledReview {
   googleEventId String?   @map("google_event_id")
   createdAt     DateTime  @default(now()) @map("created_at")
 
-  // Relaciones
+  // Relations
   card             StudyCard @relation(fields: [cardId], references: [id], onDelete: Cascade)
   user             User @relation(fields: [userId], references: [id], onDelete: Cascade)
   completedReviews CompletedReview[]
+  //indexes
+  @@index([userId, dueDate]) // for getPendingReviews (most common query)
+  @@index([cardId, userId]) // for getCardReviewHistory
+  @@index([googleEventId]) // for quick event lookup
+  @@index([userId, dueDate, googleEventId]) // for syncPendingStudySessions
 
   @@map("scheduled_reviews")
 }
@@ -83,10 +96,13 @@ model CompletedReview {
   difficultyRating    Int      @map("difficulty_rating")
   createdAt           DateTime @default(now()) @map("created_at")
 
-  // Relaciones
+  // Relations
   scheduledReview ScheduledReview @relation(fields: [scheduledReviewId], references: [id], onDelete: Cascade)
   card           StudyCard       @relation(fields: [cardId], references: [id], onDelete: Cascade)
   user           User            @relation(fields: [userId], references: [id], onDelete: Cascade)
 
+  //indexes
+  @@index([userId, completedAt]) // for getUserDashboard and stats
+  @@index([cardId, completedAt]) // for getCardReviewHistory
   @@map("completed_reviews")
 }
