@@ -96,6 +96,24 @@ npm start
 
 La API estará disponible en `http://localhost:3000`
 
+## 🌐 URLs de Producción
+
+- **Backend API**: https://studyspaceapi-production.up.railway.app
+- **Frontend Web**: https://project-study-space.vercel.app/
+
+### 🚀 Despliegue en Producción
+
+#### Backend (Railway)
+1. **Base de Datos**: PostgreSQL en Railway
+2. **Variables de Entorno**: Configuradas en Railway dashboard
+3. **Despliegue Automático**: GitHub integration con Railway
+4. **Migraciones**: Ejecutadas automáticamente en deploy
+
+#### Frontend (Vercel)
+1. **Framework**: Next.js con TypeScript
+2. **Despliegue**: Automático desde GitHub
+3. **Variables**: API_URL apunta al backend de producción
+
 ## 📚 Documentación de Endpoints
 
 ### 🔐 Autenticación de Usuarios
@@ -113,8 +131,8 @@ La API estará disponible en `http://localhost:3000`
 **Todos requieren autenticación JWT y validación de ownership**
 
 - `POST /api/topics` - Crear tema
-- `GET /api/topics` - Obtener temas del usuario
-- `GET /api/topics/search?search=term` - Buscar temas 
+- `GET /api/topics?page=1&limit=10` - Obtener temas del usuario (paginado)
+- `GET /api/topics/search?search=term&page=1&limit=10` - Buscar temas (paginado)
 - `GET /api/topics/:id` - Obtener tema específico
 - `PUT /api/topics/:id` - Actualizar tema
 - `DELETE /api/topics/:id` - Eliminar tema
@@ -124,8 +142,8 @@ La API estará disponible en `http://localhost:3000`
 **Todos requieren autenticación JWT y validación de ownership**
 
 - `POST /api/cards` - Crear tarjeta (crea evento automático de Calendar)
-- `GET /api/cards/topic/:topicId` - Obtener tarjetas de un tema
-- `GET /api/cards/search?search=term` - Buscar tarjetas
+- `GET /api/cards/topic/:topicId?page=1&limit=10` - Obtener tarjetas de un tema (paginado)
+- `GET /api/cards/search?search=term&page=1&limit=10` - Buscar tarjetas (paginado)
 - `GET /api/cards/:id` - Obtener tarjeta específica
 - `PUT /api/cards/:id` - Actualizar tarjeta (actualiza eventos automáticamente)
 - `DELETE /api/cards/:id` - Eliminar tarjeta (elimina eventos automáticamente)
@@ -134,10 +152,10 @@ La API estará disponible en `http://localhost:3000`
 
 **Todos requieren autenticación JWT y validación de ownership**
 
-- `GET /api/reviews/pending` - Repasos pendientes
+- `GET /api/reviews/pending?page=1&limit=10` - Repasos pendientes (paginado)
 - `POST /api/reviews/complete` - Completar repaso (algoritmo espaciado + Calendar)
-- `GET /api/reviews/upcoming?days=7` - Próximos repasos
-- `GET /api/reviews/card/:cardId/history` - Historial de repasos
+- `GET /api/reviews/upcoming?days=7&page=1&limit=10` - Próximos repasos (paginado)
+- `GET /api/reviews/card/:cardId/history?page=1&limit=10` - Historial de repasos (paginado)
 - `PUT /api/reviews/reschedule/:reviewId` - Reprogramar repaso
 
 ### 🗓️ Integración con Google Calendar
@@ -147,6 +165,39 @@ La API estará disponible en `http://localhost:3000`
 - `GET /api/auth/google/connect` - Iniciar autorización OAuth
 - `GET /api/auth/google/callback` - Callback automático (no usar directamente)
 
+## 📄 Sistema de Paginación
+
+### Parámetros de Paginación
+
+Todos los endpoints paginados aceptan los siguientes parámetros query opcionales:
+
+- `page` (number, default: 1) - Número de página (mínimo: 1)
+- `limit` (number, default: 10) - Elementos por página (mínimo: 1, máximo: 100)
+
+### Formato de Respuesta Paginada
+
+```json
+{
+  "data": [...], // Array de elementos
+  "pagination": {
+    "page": 1,
+    "limit": 10,
+    "total": 150,
+    "totalPages": 15
+  }
+}
+```
+
+### Endpoints con Paginación
+
+- `GET /api/topics` - Lista de temas
+- `GET /api/topics/search` - Búsqueda de temas
+- `GET /api/cards/topic/:topicId` - Tarjetas por tema
+- `GET /api/cards/search` - Búsqueda de tarjetas
+- `GET /api/reviews/pending` - Repasos pendientes
+- `GET /api/reviews/upcoming` - Próximos repasos
+- `GET /api/reviews/card/:cardId/history` - Historial de repasos
+
 ## 🧪 Testing de Endpoints
 
 ### Configuración de Testing
@@ -155,6 +206,13 @@ Para probar los endpoints, necesitas:
 1. Usuario registrado y token JWT
 2. Herramienta como Postman, Thunder Client o curl
 3. Base de datos configurada
+
+### URLs para Testing
+
+- **Desarrollo Local**: `http://localhost:3000`
+- **Producción**: `https://studyspaceapi-production.up.railway.app`
+
+**Nota**: Todos los endpoints requieren el header `Authorization: Bearer <token>` excepto registro y login.
 
 ### Flujo de Testing Recomendado
 
@@ -442,6 +500,8 @@ studyspace/
 - ✅ Dashboard con estadísticas en tiempo real
 - ✅ Manejo robusto de errores y logging
 - ✅ CORS configurado para desarrollo y producción
+- ✅ **Paginación completa en todos los endpoints de listas**
+- ✅ **Índices de base de datos para optimización de performance**
 
 ### 🚀 Próximas Mejoras
 
@@ -453,17 +513,3 @@ studyspace/
 - **Gamificación**: Sistema de puntos y logros
 - **Exportación**: Exportar datos en PDF/CSV
 - **API Webhooks**: Integración con otras herramientas de estudio
-
-## 🐛 Problemas Conocidos
-
-- Los eventos de Calendar pueden fallar si el usuario revoca permisos manualmente
-- La sincronización masiva puede ser lenta con muchas tarjetas (>100)
-- Los tokens JWT no se renuevan automáticamente (requiere re-login cada 48h)
-
-## 🤝 Contribuir
-
-1. Fork el proyecto
-2. Crea una rama para tu feature (`git checkout -b feature/nueva-funcionalidad`)
-3. Commit tus cambios (`git commit -m 'feat: agregar nueva funcionalidad'`)
-4. Push a la rama (`git push origin feature/nueva-funcionalidad`)
-5. Abre un Pull Request
