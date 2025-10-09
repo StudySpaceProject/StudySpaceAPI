@@ -5,42 +5,65 @@ import {
 } from "../controllers/calendarController.js";
 import { updateUserStreak } from "./streakService.js";
 
-export async function getPendingReviews(userId) {
+export async function getPendingReviews(userId, page = 1, limit = 10) {
   const now = new Date();
 
-  const pendingReviews = await prisma.scheduledReview.findMany({
-    where: {
-      userId,
-      dueDate: { lte: now },
-      completedReviews: { none: {} },
-    },
-    include: {
-      card: {
-        include: {
-          topic: {
-            select: {
-              id: true,
-              name: true,
-              color: true,
+  const skip = (page - 1) * limit;
+
+  const [pendingReviews, totalCount] = await Promise.all([
+    prisma.scheduledReview.findMany({
+      where: {
+        userId,
+        dueDate: { lte: now },
+        completedReviews: { none: {} },
+      },
+      include: {
+        card: {
+          include: {
+            topic: {
+              select: {
+                id: true,
+                name: true,
+                color: true,
+              },
             },
           },
         },
       },
-    },
-    orderBy: { dueDate: "asc" },
-  });
+      orderBy: { dueDate: "asc" },
+      skip,
+      take: limit,
+    }),
+    prisma.scheduledReview.count({
+      where: {
+        userId,
+        dueDate: { lte: now },
+        completedReviews: { none: {} },
+      },
+    }),
+  ]);
 
-  return pendingReviews.map((review) => ({
-    id: review.id,
-    dueDate: review.dueDate,
-    intervalDays: review.intervalDays,
-    card: {
-      id: review.card.id,
-      question: review.card.question,
-      answer: review.card.answer,
-      topic: review.card.topic,
+  const totalPages = Math.ceil(totalCount / limit);
+
+  return {
+    pendingReviews: pendingReviews.map((review) => ({
+      id: review.id,
+      dueDate: review.dueDate,
+      intervalDays: review.intervalDays,
+      card: {
+        id: review.card.id,
+        question: review.card.question,
+        answer: review.card.answer,
+        topic: review.card.topic,
+      },
+    })),
+    pagination: {
+      page,
+      limit,
+      total: totalCount,
+      totalPages,
     },
-  }));
+  };
 }
 
 export async function completeReview(scheduledReviewId, reviewData, userId) {
@@ -178,51 +201,71 @@ function calculateNextInterval(
   return nextInterval;
 }
 
-export async function getUpcomingReviews(userId, days = 7) {
+export async function getUpcomingReviews(
+  userId,
+  days = 7,
+  page = 1,
+  limit = 10
+) {
   const startDate = new Date();
   const endDate = new Date();
   endDate.setDate(startDate.getDate() + days);
 
-  const upcomingReviews = await prisma.scheduledReview.findMany({
-    where: {
-      userId,
-      dueDate: {
-        gte: startDate,
-        lte: endDate,
+  const skip = (page - 1) * limit;
+
+  const [upcomingReviews, totalCount] = await Promise.all([
+    prisma.scheduledReview.findMany({
+      where: {
+        userId,
+        dueDate: {
+          gte: startDate,
+          lte: endDate,
+        },
+        completedReviews: { none: {} },
       },
-      completedReviews: { none: {} },
-    },
-    include: {
-      card: {
-        include: {
-          topic: {
-            select: {
-              name: true,
-              color: true,
+      include: {
+        card: {
+          include: {
+            topic: {
+              select: {
+                name: true,
+                color: true,
+              },
             },
           },
         },
       },
-    },
-    orderBy: { dueDate: "asc" },
-  });
+      orderBy: { dueDate: "asc" },
+      skip,
+      take: limit,
+    }),
+    prisma.scheduledReview.count({
+      where: {
+        userId,
+        dueDate: {
+          gte: startDate,
+          lte: endDate,
+        },
+        completedReviews: { none: {} },
+      },
+    }),
+  ]);
 
-  //group by date
+  const totalPages = Math.ceil(totalCount / limit);
 
-  const reviewsByDate = {};
-  upcomingReviews.forEach((review) => {
-    const dateKey = review.dueDate.toISOString().split("T")[0];
-    if (!reviewsByDate[dateKey]) {
-      reviewsByDate[dateKey] = [];
-    }
-    reviewsByDate[dateKey].push({
+  return {
+    upcomingReviews: upcomingReviews.map((review) => ({
       id: review.id,
       dueDate: review.dueDate,
       card: review.card,
-    });
-  });
-
-  return reviewsByDate;
+    })),
+    pagination: {
+      page,
+      limit,
+      total: totalCount,
+      totalPages,
+    },
+  };
 }
 
 export async function getCardReviewHistory(

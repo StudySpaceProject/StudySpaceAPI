@@ -3,12 +3,18 @@ import * as reviewService from "./../services/reviewService.js";
 export async function getPendingReviews(req, res, next) {
   try {
     const userId = req.apiUserId;
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 10;
 
-    const pendingReviews = await reviewService.getPendingReviews(userId);
+    if (page < 1 || limit < 1 || limit > 100) {
+      const error = new Error("Invalid pagination parameters");
+      error.status = 400;
+      return next(error);
+    }
 
-    res.json({
-      pendingReviews,
-    });
+    const result = await reviewService.getPendingReviews(userId, page, limit);
+
+    res.json(result);
   } catch (error) {
     next(error);
   }
@@ -62,6 +68,8 @@ export async function getUpcomingReviews(req, res, next) {
   try {
     const userId = req.apiUserId;
     const days = parseInt(req.query.days) || 7;
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 10;
 
     if (days < 1 || days > 30) {
       const error = new Error("Days parameter must be between 1 and 30");
@@ -69,14 +77,20 @@ export async function getUpcomingReviews(req, res, next) {
       return next(error);
     }
 
-    const upcomingReviews = await reviewService.getUpcomingReviews(
+    if (page < 1 || limit < 1 || limit > 100) {
+      const error = new Error("Invalid pagination parameters");
+      error.status = 400;
+      return next(error);
+    }
+
+    const result = await reviewService.getUpcomingReviews(
       userId,
-      days
+      days,
+      page,
+      limit
     );
 
-    res.json({
-      upcomingReviews,
-    });
+    res.json(result);
   } catch (error) {
     next(error);
   }
