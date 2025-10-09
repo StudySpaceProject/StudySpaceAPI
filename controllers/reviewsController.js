@@ -37,7 +37,7 @@ export async function completeReview(req, res, next) {
 
     const result = await reviewService.completeReview(
       scheduledReviewId,
-      { difficultyRating},
+      { difficultyRating },
       userId
     );
 
@@ -86,6 +86,8 @@ export async function getCardReviewHistory(req, res, next) {
   try {
     const cardId = parseInt(req.params.cardId);
     const userId = req.apiUserId;
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 10;
 
     if (isNaN(cardId)) {
       const error = new Error("Invalid card ID");
@@ -93,12 +95,22 @@ export async function getCardReviewHistory(req, res, next) {
       return next(error);
     }
 
-    const history = await reviewService.getCardReviewHistory(cardId, userId);
+    if (page < 1 || limit < 1 || limit > 100) {
+      const error = new Error("Invalid pagination parameters");
+      error.status = 400;
+      return next(error);
+    }
+
+    const result = await reviewService.getCardReviewHistory(
+      cardId,
+      userId,
+      page,
+      limit
+    );
 
     res.json({
       cardId,
-      history,
-      totalReviews: history.length,
+      ...result,
     });
   } catch (error) {
     next(error);

@@ -26,34 +26,53 @@ export async function createTopic(userId, topicData) {
   }
 }
 
-export async function getUserTopics(userId) {
-  const topics = await prisma.studyTopic.findMany({
-    where: { userId },
-    include: {
-      studyCards: {
-        select: {
-          id: true,
-          question: true,
-          answer: true,
-          createdAt: true,
+export async function getUserTopics(userId, page = 1, limit = 10) {
+  const skip = (page - 1) * limit;
+
+  const [topics, totalCount] = await Promise.all([
+    prisma.studyTopic.findMany({
+      where: { userId },
+      include: {
+        studyCards: {
+          select: {
+            id: true,
+            question: true,
+            answer: true,
+            createdAt: true,
+          },
+        },
+        _count: {
+          select: { studyCards: true },
         },
       },
-      _count: {
-        select: { studyCards: true },
-      },
-    },
-    orderBy: { createdAt: "desc" },
-  });
+      orderBy: { createdAt: "desc" },
+      skip,
+      take: limit,
+    }),
+    prisma.studyTopic.count({
+      where: { userId },
+    }),
+  ]);
 
-  return topics.map((topic) => ({
-    id: topic.id,
-    name: topic.name,
-    description: topic.description,
-    color: topic.color,
-    createdAt: topic.createdAt,
-    cardsCount: topic._count.studyCards,
-    studyCards: topic.studyCards,
-  }));
+  const totalPages = Math.ceil(totalCount / limit);
+
+  return {
+    topics: topics.map((topic) => ({
+      id: topic.id,
+      name: topic.name,
+      description: topic.description,
+      color: topic.color,
+      createdAt: topic.createdAt,
+      cardsCount: topic._count.studyCards,
+      studyCards: topic.studyCards,
+    })),
+    pagination: {
+      page,
+      limit,
+      total: totalCount,
+      totalPages,
+    },
+  };
 }
 
 export async function getTopicById(topicId, userId) {
@@ -93,30 +112,55 @@ export async function getTopicById(topicId, userId) {
   };
 }
 
-export async function searchTopics(userId, searchTerm) {
-  const topics = await prisma.studyTopic.findMany({
-    where: {
-      userId,
-      name: {
-        contains: searchTerm.trim(),
-        mode: "insensitive",
-      },
-    },
-    include: {
-      _count: {
-        select: { studyCards: true },
-      },
-    },
-    orderBy: { name: "asc" },
-  });
+export async function searchTopics(userId, searchTerm, page = 1, limit = 10) {
+  const skip = (page - 1) * limit;
 
-  return topics.map((topic) => ({
-    id: topic.id,
-    name: topic.name,
-    description: topic.description,
-    color: topic.color,
-    cardsCount: topic._count.studyCards,
-  }));
+  const [topics, totalCount] = await Promise.all([
+    prisma.studyTopic.findMany({
+      where: {
+        userId,
+        name: {
+          contains: searchTerm.trim(),
+          mode: "insensitive",
+        },
+      },
+      include: {
+        _count: {
+          select: { studyCards: true },
+        },
+      },
+      orderBy: { name: "asc" },
+      skip,
+      take: limit,
+    }),
+    prisma.studyTopic.count({
+      where: {
+        userId,
+        name: {
+          contains: searchTerm.trim(),
+          mode: "insensitive",
+        },
+      },
+    }),
+  ]);
+
+  const totalPages = Math.ceil(totalCount / limit);
+
+  return {
+    topics: topics.map((topic) => ({
+      id: topic.id,
+      name: topic.name,
+      description: topic.description,
+      color: topic.color,
+      cardsCount: topic._count.studyCards,
+    })),
+    pagination: {
+      page,
+      limit,
+      total: totalCount,
+      totalPages,
+    },
+  };
 }
 
 export async function updateTopic(topicId, userId, updateInfo) {

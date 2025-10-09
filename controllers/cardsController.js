@@ -48,6 +48,8 @@ export async function getTopicCards(req, res, next) {
   try {
     const topicId = parseInt(req.params.topicId);
     const userId = req.apiUserId;
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 10;
 
     if (isNaN(topicId)) {
       const error = new Error("Invalid topic ID");
@@ -55,9 +57,20 @@ export async function getTopicCards(req, res, next) {
       return next(error);
     }
 
-    const cards = await cardService.getTopicCards(topicId, userId);
+    if (page < 1 || limit < 1 || limit > 100) {
+      const error = new Error("Invalid pagination parameters");
+      error.status = 400;
+      return next(error);
+    }
 
-    res.json({ cards });
+    const result = await cardService.getTopicCards(
+      topicId,
+      userId,
+      page,
+      limit
+    );
+
+    res.json(result);
   } catch (error) {
     if (
       error.message.includes("not found") ||
@@ -173,6 +186,8 @@ export async function searchCards(req, res, next) {
   try {
     const userId = req.apiUserId;
     const { search } = req.query;
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 10;
 
     if (!search || search.trim().length < 2) {
       const error = new Error("Search term must be at least 2 characters long");
@@ -180,10 +195,16 @@ export async function searchCards(req, res, next) {
       return next(error);
     }
 
-    const cards = await cardService.searchCards(userId, search);
+    if (page < 1 || limit < 1 || limit > 100) {
+      const error = new Error("Invalid pagination parameters");
+      error.status = 400;
+      return next(error);
+    }
+
+    const result = await cardService.searchCards(userId, search, page, limit);
 
     res.json({
-      cards,
+      ...result,
       searchTerm: search,
     });
   } catch (error) {

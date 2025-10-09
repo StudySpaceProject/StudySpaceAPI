@@ -225,7 +225,12 @@ export async function getUpcomingReviews(userId, days = 7) {
   return reviewsByDate;
 }
 
-export async function getCardReviewHistory(cardId, userId) {
+export async function getCardReviewHistory(
+  cardId,
+  userId,
+  page = 1,
+  limit = 10
+) {
   const card = await prisma.studyCard.findFirst({
     where: {
       id: cardId,
@@ -239,28 +244,50 @@ export async function getCardReviewHistory(cardId, userId) {
     throw new Error("Card not found or unauthorized access");
   }
 
-  const cardHistory = await prisma.completedReview.findMany({
-    where: {
-      cardId,
-      userId,
-    },
-    include: {
-      scheduledReview: {
-        select: {
-          intervalDays: true,
-          dueDate: true,
+  const skip = (page - 1) * limit;
+
+  const [cardHistory, totalCount] = await Promise.all([
+    prisma.completedReview.findMany({
+      where: {
+        cardId,
+        userId,
+      },
+      include: {
+        scheduledReview: {
+          select: {
+            intervalDays: true,
+            dueDate: true,
+          },
         },
       },
-    },
-    orderBy: { completedAt: "asc" },
-  });
+      orderBy: { completedAt: "asc" },
+      skip,
+      take: limit,
+    }),
+    prisma.completedReview.count({
+      where: {
+        cardId,
+        userId,
+      },
+    }),
+  ]);
 
-  return cardHistory.map((review) => ({
-    completedAt: review.completedAt,
-    difficultyRating: review.difficultyRating,
-    intervalDays: review.scheduledReview.intervalDays,
-    scheduledFor: review.scheduledReview.dueDate,
-  }));
+  const totalPages = Math.ceil(totalCount / limit);
+
+  return {
+    history: cardHistory.map((review) => ({
+      completedAt: review.completedAt,
+      difficultyRating: review.difficultyRating,
+      intervalDays: review.scheduledReview.intervalDays,
+      scheduledFor: review.scheduledReview.dueDate,
+    })),
+    pagination: {
+      page,
+      limit,
+      total: totalCount,
+      totalPages,
+    },
+  };
 }
 
 export async function rescheduleReview(scheduledReviewId, newDate, userId) {

@@ -38,10 +38,18 @@ export async function createTopic(req, res, next) {
 export async function getUserTopics(req, res, next) {
   try {
     const userId = req.apiUserId;
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 10;
 
-    const topics = await topicService.getUserTopics(userId);
+    if (page < 1 || limit < 1 || limit > 100) {
+      const error = new Error("Invalid pagination parameters");
+      error.status = 400;
+      return next(error);
+    }
 
-    res.json({ topics });
+    const result = await topicService.getUserTopics(userId, page, limit);
+
+    res.json(result);
   } catch (error) {
     next(error);
   }
@@ -144,6 +152,8 @@ export async function searchTopics(req, res, next) {
   try {
     const userId = req.apiUserId;
     const { search } = req.query;
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 10;
 
     if (!search || search.trim().length < 2) {
       const error = new Error("Search term must be at least 2 characters long");
@@ -151,10 +161,16 @@ export async function searchTopics(req, res, next) {
       return next(error);
     }
 
-    const topics = await topicService.searchTopics(userId, search);
+    if (page < 1 || limit < 1 || limit > 100) {
+      const error = new Error("Invalid pagination parameters");
+      error.status = 400;
+      return next(error);
+    }
+
+    const result = await topicService.searchTopics(userId, search, page, limit);
 
     res.json({
-      topics,
+      ...result,
       searchTerm: search,
     });
   } catch (error) {

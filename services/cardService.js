@@ -1,5 +1,8 @@
 import prisma from "../lib/prisma.js";
-import { createStudySessionEvent, deleteCalendarEvent } from "../controllers/calendarController.js";
+import {
+  createStudySessionEvent,
+  deleteCalendarEvent,
+} from "../controllers/calendarController.js";
 
 export async function createCard(topicId, cardData, userId) {
   const { question, answer } = cardData;
@@ -35,8 +38,6 @@ export async function createCard(topicId, cardData, userId) {
     const tomorrowDate = new Date();
     tomorrowDate.setDate(tomorrowDate.getDate() + 1);
     tomorrowDate.setHours(9, 0, 0, 0);
-    
-
 
     const scheduledReview = await prisma.scheduledReview.create({
       data: {
@@ -48,10 +49,9 @@ export async function createCard(topicId, cardData, userId) {
     });
 
     try {
-
       const eventResult = await createStudySessionEvent(userId, {
         ...scheduledReview,
-        card: { ...card, topic }
+        card: { ...card, topic },
       });
       console.log(`RESULTADO del evento:`, eventResult ? "ÉXITO" : "NULL");
       console.log(`Evento creado en Calendar para card ${card.id}`);
@@ -65,7 +65,7 @@ export async function createCard(topicId, cardData, userId) {
   }
 }
 
-export async function getTopicCards(topicId, userId) {
+export async function getTopicCards(topicId, userId, page = 1, limit = 10) {
   const topic = await prisma.studyTopic.findFirst({
     where: { id: topicId, userId },
   });
@@ -74,51 +74,70 @@ export async function getTopicCards(topicId, userId) {
     throw new Error("Topic not found or unauthorized access");
   }
 
-  const cards = await prisma.studyCard.findMany({
-    where: { topicId },
-    include: {
-      topic: {
-        select: {
-          id: true,
-          name: true,
-          color: true,
-        },
-      },
-      scheduledReviews: {
-        where: {
-          completedReviews: { none: {} },
-        },
-        orderBy: { dueDate: "asc" },
-        take: 1,
-      },
-      completedReviews: {
-        select: {
-          completedAt: true,
-          difficultyRating: true,
-        },
-        orderBy: { completedAt: "desc" },
-        take: 5,
-      },
-      _count: {
-        select: {
-          completedReviews: true,
-        },
-      },
-    },
-    orderBy: { createdAt: "desc" },
-  });
+  const skip = (page - 1) * limit;
 
-  return cards.map((card) => ({
-    id: card.id,
-    question: card.question,
-    answer: card.answer,
-    createdAt: card.createdAt,
-    topic: card.topic,
-    nextReview: card.scheduledReviews[0]?.dueDate || null,
-    timesStudied: card._count.completedReviews,
-    lastRating: card.completedReviews[0]?.difficultyRating || null,
-    recentSessions: card.completedReviews,
-  }));
+  const [cards, totalCount] = await Promise.all([
+    prisma.studyCard.findMany({
+      where: { topicId },
+      include: {
+        topic: {
+          select: {
+            id: true,
+            name: true,
+            color: true,
+          },
+        },
+        scheduledReviews: {
+          where: {
+            completedReviews: { none: {} },
+          },
+          orderBy: { dueDate: "asc" },
+          take: 1,
+        },
+        completedReviews: {
+          select: {
+            completedAt: true,
+            difficultyRating: true,
+          },
+          orderBy: { completedAt: "desc" },
+          take: 5,
+        },
+        _count: {
+          select: {
+            completedReviews: true,
+          },
+        },
+      },
+      orderBy: { createdAt: "desc" },
+      skip,
+      take: limit,
+    }),
+    prisma.studyCard.count({
+      where: { topicId },
+    }),
+  ]);
+
+  const totalPages = Math.ceil(totalCount / limit);
+
+  return {
+    cards: cards.map((card) => ({
+      id: card.id,
+      question: card.question,
+      answer: card.answer,
+      createdAt: card.createdAt,
+      topic: card.topic,
+      nextReview: card.scheduledReviews[0]?.dueDate || null,
+      timesStudied: card._count.completedReviews,
+      lastRating: card.completedReviews[0]?.difficultyRating || null,
+      recentSessions: card.completedReviews,
+    })),
+    pagination: {
+      page,
+      limit,
+      total: totalCount,
+      totalPages,
+    },
+  };
 }
 
 export async function getCardById(cardId, userId) {
@@ -209,11 +228,11 @@ export async function updateCard(cardId, updatedInfo, userId) {
         where: {
           cardId,
           completedReviews: { none: {} },
-          googleEventId: { not: null }
+          googleEventId: { not: null },
         },
         include: {
-          card: { include: { topic: true } }
-        }
+          card: { include: { topic: true } },
+        },
       });
 
       // Recreate events
@@ -221,12 +240,15 @@ export async function updateCard(cardId, updatedInfo, userId) {
         await deleteCalendarEvent(userId, review.googleEventId);
         await createStudySessionEvent(userId, {
           ...review,
-          card: { ...updatedCard, topic: updatedCard.topic }
+          card: { ...updatedCard, topic: updatedCard.topic },
         });
       }
       console.log(`${pendingReviews.length} eventos actualizados en Calendar`);
     } catch (calendarError) {
-      console.log("Error actualizando eventos de Calendar:", calendarError.message);
+      console.log(
+        "Error actualizando eventos de Calendar:",
+        calendarError.message
+      );
     }
   }
 
@@ -251,8 +273,8 @@ export async function deleteCard(cardId, userId) {
       where: {
         cardId,
         completedReviews: { none: {} },
-        googleEventId: { not: null }
-      }
+        googleEventId: { not: null },
+      },
     });
 
     for (const review of pendingReviews) {
@@ -272,48 +294,82 @@ export async function deleteCard(cardId, userId) {
   };
 }
 
-export async function searchCards(userId, searchTerm) {
-  const cards = await prisma.studyCard.findMany({
-    where: {
-      topic: { userId },
-      OR: [
-        {
-          question: {
-            contains: searchTerm.trim(),
-            mode: "insensitive",
-          },
-        },
-        {
-          answer: {
-            contains: searchTerm.trim(),
-            mode: "insensitive",
-          },
-        },
-      ],
-    },
-    include: {
-      topic: {
-        select: {
-          id: true,
-          name: true,
-          color: true,
-        },
-      },
-      _count: {
-        select: {
-          completedReviews: true,
-        },
-      },
-    },
-    take: 20,
-    orderBy: { createdAt: "desc" },
-  });
+export async function searchCards(userId, searchTerm, page = 1, limit = 10) {
+  const skip = (page - 1) * limit;
 
-  return cards.map((card) => ({
-    id: card.id,
-    question: card.question,
-    answer: card.answer,
-    topic: card.topic,
-    timesStudied: card._count.completedReviews,
-  }));
+  const [cards, totalCount] = await Promise.all([
+    prisma.studyCard.findMany({
+      where: {
+        topic: { userId },
+        OR: [
+          {
+            question: {
+              contains: searchTerm.trim(),
+              mode: "insensitive",
+            },
+          },
+          {
+            answer: {
+              contains: searchTerm.trim(),
+              mode: "insensitive",
+            },
+          },
+        ],
+      },
+      include: {
+        topic: {
+          select: {
+            id: true,
+            name: true,
+            color: true,
+          },
+        },
+        _count: {
+          select: {
+            completedReviews: true,
+          },
+        },
+      },
+      skip,
+      take: limit,
+      orderBy: { createdAt: "desc" },
+    }),
+    prisma.studyCard.count({
+      where: {
+        topic: { userId },
+        OR: [
+          {
+            question: {
+              contains: searchTerm.trim(),
+              mode: "insensitive",
+            },
+          },
+          {
+            answer: {
+              contains: searchTerm.trim(),
+              mode: "insensitive",
+            },
+          },
+        ],
+      },
+    }),
+  ]);
+
+  const totalPages = Math.ceil(totalCount / limit);
+
+  return {
+    cards: cards.map((card) => ({
+      id: card.id,
+      question: card.question,
+      answer: card.answer,
+      topic: card.topic,
+      timesStudied: card._count.completedReviews,
+    })),
+    pagination: {
+      page,
+      limit,
+      total: totalCount,
+      totalPages,
+    },
+  };
 }
